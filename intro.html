@@ -1,149 +1,194 @@
 <!doctype html>
 <html lang="nl">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PROTOCOL 50</title>
-  <style>
-    :root{
-      --green:#00ff66;
-      --bg:#000;
-      --dim: rgba(0,255,102,.15);
-      --glow: 0 0 12px rgba(0,255,102,.35), 0 0 28px rgba(0,255,102,.2);
-    }
-    html,body{height:100%; margin:0; background:var(--bg); color:var(--green); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
-    canvas{position:fixed; inset:0; width:100%; height:100%; display:block; background:#000;}
-    .overlay{position:fixed; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;}
-    .panel{width:min(900px, 92vw); text-align:center; padding:24px 16px;}
-    .title{
-      font-size: clamp(28px, 6vw, 68px);
-      letter-spacing: .14em;
-      text-shadow: var(--glow);
-      margin: 0 0 12px;
-      opacity:0;
-      transform: translateY(6px);
-      transition: opacity .6s ease, transform .6s ease;
-    }
-    .title.show{opacity:1; transform: translateY(0);}
-    .typeLine{
-      font-size: clamp(14px, 2.2vw, 18px);
-      color: rgba(0,255,102,.85);
-      text-shadow: 0 0 10px rgba(0,255,102,.18);
-      min-height: 1.4em;
-      margin: 0 auto 18px;
-      max-width: 70ch;
-    }
-    .caret{
-      display:inline-block;
-      width: 10px;
-      margin-left: 2px;
-      border-left: 2px solid rgba(0,255,102,.9);
-      animation: blink .9s steps(1) infinite;
-      transform: translateY(2px);
-    }
-    @keyframes blink{50%{opacity:0;}}
-    .actions{
-      display:flex;
-      gap:12px;
-      justify-content:center;
-      opacity:0;
-      transform: translateY(10px);
-      transition: opacity .7s ease, transform .7s ease;
-      pointer-events:auto;
-      flex-direction: column;
-      align-items:center;
-    }
-    .actions.show{opacity:1; transform: translateY(0);}
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>PROTOCOL 50</title>
 
-    .decryptWrap{
-      width:min(420px, 92vw);
-      padding: 12px 14px;
-      border-radius: 12px;
-      border: 1px solid rgba(0,255,102,.18);
-      background: rgba(0,255,102,.03);
-      box-shadow: 0 0 0 1px rgba(0,255,102,.06) inset;
-      display:none;
-    }
-    .decryptWrap.show{display:block;}
-    .decryptTop{
-      display:flex;
-      justify-content:space-between;
-      gap:12px;
-      font-size: 12px;
-      color: rgba(0,255,102,.65);
-      letter-spacing:.06em;
-      margin-bottom: 10px;
-    }
-    .bar{
-      height: 8px;
-      width:100%;
-      border-radius: 999px;
-      background: rgba(0,255,102,.08);
-      overflow:hidden;
-      border: 1px solid rgba(0,255,102,.16);
-    }
-    .bar > div{
-      height:100%;
-      width:0%;
-      background: rgba(0,255,102,.45);
-      box-shadow: 0 0 14px rgba(0,255,102,.25);
-      transition: width .08s linear;
-    }
-    .decryptText{
-      margin-top: 10px;
-      font-size: 14px;
-      letter-spacing:.12em;
-      color: rgba(0,255,102,.9);
-      text-shadow: 0 0 10px rgba(0,255,102,.16);
-      min-height: 1.5em;
-      user-select:none;
-    }
+<style>
+  :root{
+    --green:#00ff66;
+    --bg:#000;
+    --glow: 0 0 12px rgba(0,255,102,.35), 0 0 28px rgba(0,255,102,.2);
+  }
+  html,body{height:100%; margin:0; background:var(--bg); color:var(--green); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+  canvas{position:fixed; inset:0; width:100%; height:100%; display:block; background:#000;}
+  .overlay{position:fixed; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;}
+  .panel{width:min(900px, 92vw); text-align:center; padding:24px 16px; position:relative; z-index:2;}
 
-    a.btn{
-      display:inline-flex; align-items:center; justify-content:center;
-      padding: 12px 18px;
-      border: 1px solid rgba(0,255,102,.55);
-      color: var(--green);
-      text-decoration:none;
-      background: rgba(0,255,102,.06);
-      box-shadow: 0 0 0 1px rgba(0,255,102,.08) inset;
-      border-radius: 10px;
-      letter-spacing:.08em;
-      transition: transform .12s ease, background .2s ease, border-color .2s ease, opacity .2s ease;
-      user-select:none;
-      min-width: 200px;
-      opacity:.35;
-      pointer-events:none;
-      filter: saturate(.9);
-    }
-    a.btn.ready{
-      opacity:1;
-      pointer-events:auto;
-      filter:none;
-    }
-    a.btn:hover{background: rgba(0,255,102,.12); border-color: rgba(0,255,102,.8); transform: translateY(-1px);}
-    a.btn:active{transform: translateY(0);}
+  /* CRT scanlines + subtle flicker */
+  .crt::before{
+    content:"";
+    position:fixed; inset:0;
+    pointer-events:none;
+    background:
+      repeating-linear-gradient(
+        to bottom,
+        rgba(0,0,0,.00) 0px,
+        rgba(0,0,0,.00) 2px,
+        rgba(0,0,0,.18) 3px
+      );
+    mix-blend-mode:multiply;
+    opacity:.35;
+    z-index:1;
+  }
+  .crt::after{
+    content:"";
+    position:fixed; inset:0;
+    pointer-events:none;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(0,0,0,.72) 100%),
+                linear-gradient(to bottom, rgba(0,0,0,.28), rgba(0,0,0,.52));
+    z-index:1;
+    animation: flicker 4.2s infinite;
+  }
+  @keyframes flicker{
+    0%, 100%{opacity:1}
+    41%{opacity:.92}
+    42%{opacity:1}
+    74%{opacity:.95}
+    75%{opacity:1}
+    88%{opacity:.9}
+    89%{opacity:1}
+  }
 
-    .hint{
-      margin-top: 10px;
-      font-size: 12px;
-      color: rgba(0,255,102,.55);
-      opacity:0;
-      transition: opacity .5s ease;
-    }
-    .vignette{
-      position:fixed; inset:0;
-      background:
-        radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(0,0,0,.75) 100%),
-        linear-gradient(to bottom, rgba(0,0,0,.35), rgba(0,0,0,.55));
-      pointer-events:none;
-      mix-blend-mode: multiply;
-    }
-  </style>
+  .typeLine{
+    font-size: clamp(14px, 2.2vw, 18px);
+    color: rgba(0,255,102,.85);
+    text-shadow: 0 0 10px rgba(0,255,102,.18);
+    min-height: 1.4em;
+    margin: 0 auto 18px;
+    max-width: 70ch;
+  }
+  .caret{
+    display:inline-block; width:10px; margin-left:2px;
+    border-left:2px solid rgba(0,255,102,.9);
+    animation: blink .9s steps(1) infinite;
+    transform: translateY(2px);
+  }
+  @keyframes blink{50%{opacity:0;}}
+
+  .title{
+    font-size: clamp(28px, 6vw, 68px);
+    letter-spacing: .14em;
+    text-shadow: var(--glow);
+    margin: 0 0 12px;
+    opacity:0;
+    transform: translateY(6px);
+    transition: opacity .6s ease, transform .6s ease;
+  }
+  .title.show{opacity:1; transform: translateY(0);}
+
+  .actions{
+    display:flex; flex-direction:column; align-items:center; gap:12px;
+    opacity:0; transform: translateY(10px);
+    transition: opacity .7s ease, transform .7s ease;
+    pointer-events:auto;
+  }
+  .actions.show{opacity:1; transform: translateY(0);}
+
+  .decryptWrap{
+    width:min(420px, 92vw);
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(0,255,102,.18);
+    background: rgba(0,255,102,.03);
+    box-shadow: 0 0 0 1px rgba(0,255,102,.06) inset;
+    display:none;
+  }
+  .decryptWrap.show{display:block;}
+  .decryptTop{
+    display:flex; justify-content:space-between; gap:12px;
+    font-size: 12px; color: rgba(0,255,102,.65);
+    letter-spacing:.06em; margin-bottom: 10px;
+  }
+  .bar{
+    height: 8px; width:100%;
+    border-radius: 999px;
+    background: rgba(0,255,102,.08);
+    overflow:hidden;
+    border: 1px solid rgba(0,255,102,.16);
+  }
+  .bar > div{
+    height:100%; width:0%;
+    background: rgba(0,255,102,.45);
+    box-shadow: 0 0 14px rgba(0,255,102,.25);
+    transition: width .08s linear;
+  }
+  .decryptText{
+    margin-top: 10px;
+    font-size: 14px;
+    letter-spacing:.18em;
+    color: rgba(0,255,102,.9);
+    text-shadow: 0 0 10px rgba(0,255,102,.16);
+    min-height: 1.5em;
+    user-select:none;
+  }
+
+  a.btn, button.btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    padding: 12px 18px;
+    border: 1px solid rgba(0,255,102,.55);
+    color: var(--green);
+    text-decoration:none;
+    background: rgba(0,255,102,.06);
+    box-shadow: 0 0 0 1px rgba(0,255,102,.08) inset;
+    border-radius: 10px;
+    letter-spacing:.08em;
+    transition: transform .12s ease, background .2s ease, border-color .2s ease, opacity .2s ease, filter .2s ease;
+    user-select:none;
+    min-width: 230px;
+  }
+  a.btn:hover, button.btn:hover{background: rgba(0,255,102,.12); border-color: rgba(0,255,102,.8); transform: translateY(-1px);}
+  a.btn:active, button.btn:active{transform: translateY(0);}
+
+  a.btn{
+    opacity:.35;
+    pointer-events:none;
+    filter: saturate(.9);
+  }
+  a.btn.ready{
+    opacity:1;
+    pointer-events:auto;
+    filter:none;
+  }
+
+  /* Start overlay */
+  .startOverlay{
+    position:fixed; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    background:#000;
+    z-index:10;
+  }
+
+  /* Warning flash */
+  .flash{
+    position:fixed; inset:0;
+    background: rgba(255,0,0,.18);
+    pointer-events:none;
+    opacity:0;
+    z-index:9;
+  }
+  .flash.on{
+    animation: redflash .5s ease-in-out 1;
+  }
+  @keyframes redflash{
+    0%{opacity:0}
+    15%{opacity:1}
+    40%{opacity:.35}
+    70%{opacity:.85}
+    100%{opacity:0}
+  }
+</style>
 </head>
-<body>
+
+<body class="crt">
   <canvas id="rain"></canvas>
-  <div class="vignette"></div>
+  <div id="flash" class="flash"></div>
+
+  <!-- START SCREEN -->
+  <div id="startScreen" class="startOverlay">
+    <button id="startBtn" class="btn">START PROTOCOL</button>
+  </div>
 
   <div class="overlay">
     <div class="panel">
@@ -157,309 +202,282 @@
             <span id="pct">0%</span>
           </div>
           <div class="bar"><div id="barFill"></div></div>
-          <div id="decryptText" class="decryptText">····</div>
+          <div id="decryptText" class="decryptText">########</div>
         </div>
 
         <a id="goBtn" class="btn" href="https://iterion.be/level1.html">VERDER GAAN</a>
       </div>
-
-      <div class="hint" id="hint">Tip: klik of druk op Enter/Spatie om sneller door het intro te gaan (audio start dan ook).</div>
     </div>
   </div>
 
-  <script>
-    // ===============================
-    // 1) Matrix rain
-    // ===============================
-    const canvas = document.getElementById("rain");
-    const ctx = canvas.getContext("2d", { alpha: false });
+<script>
+  // ===============================
+  // Matrix rain
+  // ===============================
+  const canvas = document.getElementById("rain");
+  const ctx = canvas.getContext("2d", { alpha: false });
 
-    const chars = "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    let w, h, columns, drops, fontSize;
+  const chars = "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  let w, h, columns, drops, fontSize;
 
-    function resize(){
-      w = canvas.width = Math.floor(window.innerWidth * devicePixelRatio);
-      h = canvas.height = Math.floor(window.innerHeight * devicePixelRatio);
-      fontSize = Math.max(14, Math.floor(18 * devicePixelRatio));
-      columns = Math.floor(w / fontSize);
-      drops = new Array(columns).fill(0).map(() => Math.floor(Math.random() * (h / fontSize)));
-      ctx.font = `${fontSize}px ui-monospace, monospace`;
-      ctx.textBaseline = "top";
-    }
-    window.addEventListener("resize", resize, { passive: true });
-    resize();
+  function resize(){
+    w = canvas.width = Math.floor(window.innerWidth * devicePixelRatio);
+    h = canvas.height = Math.floor(window.innerHeight * devicePixelRatio);
+    fontSize = Math.max(14, Math.floor(18 * devicePixelRatio));
+    columns = Math.floor(w / fontSize);
+    drops = new Array(columns).fill(0).map(() => Math.floor(Math.random() * (h / fontSize)));
+    ctx.font = `${fontSize}px ui-monospace, monospace`;
+    ctx.textBaseline = "top";
+  }
+  window.addEventListener("resize", resize, { passive: true });
+  resize();
 
-    let rainIntensity = 0.08;
-    let rainSpeed = 1;
-    let running = true;
+  let rainIntensity = 0.08;
+  let rainSpeed = 1;
+  let running = false;
 
-    function draw(){
-      if(!running) return;
-      ctx.fillStyle = `rgba(0,0,0,${rainIntensity})`;
-      ctx.fillRect(0, 0, w, h);
+  function draw(){
+    if(!running) return;
+    ctx.fillStyle = `rgba(0,0,0,${rainIntensity})`;
+    ctx.fillRect(0, 0, w, h);
 
-      for(let i=0; i<drops.length; i++){
-        const text = chars[Math.floor(Math.random() * chars.length)];
-        const x = i * fontSize;
-        const y = drops[i] * fontSize;
-        const bright = 170 + Math.floor(Math.random() * 85);
-        ctx.fillStyle = `rgb(0,${bright},80)`;
-        ctx.fillText(text, x, y);
+    for(let i=0; i<drops.length; i++){
+      const text = chars[Math.floor(Math.random() * chars.length)];
+      const x = i * fontSize;
+      const y = drops[i] * fontSize;
 
-        if (y > h && Math.random() > 0.975) drops[i] = 0;
-        else drops[i] += rainSpeed;
-      }
-      requestAnimationFrame(draw);
+      const bright = 170 + Math.floor(Math.random() * 85);
+      ctx.fillStyle = `rgb(0,${bright},80)`;
+      ctx.fillText(text, x, y);
+
+      if (y > h && Math.random() > 0.975) drops[i] = 0;
+      else drops[i] += rainSpeed;
     }
     requestAnimationFrame(draw);
+  }
 
-    // ===============================
-    // 2) Terminal bleep (Web Audio)
-    //    - must start after user gesture
-    // ===============================
-    let audioReady = false;
-    let audioCtx = null;
-    let master = null;
+  // ===============================
+  // Terminal bleep (Web Audio)
+  // ===============================
+  let audioCtx = null;
+  let master = null;
 
-    function initAudio(){
-      if(audioReady) return;
-      audioReady = true;
+  function initAudio(){
+    if(audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    master = audioCtx.createGain();
+    master.gain.value = 0.12;
+    master.connect(audioCtx.destination);
+  }
 
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      master = audioCtx.createGain();
-      master.gain.value = 0.12; // overall volume
-      master.connect(audioCtx.destination);
-    }
+  function bleep(kind="key"){
+    if(!audioCtx) return;
+    const now = audioCtx.currentTime;
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
 
-    function bleep(kind="key"){
-      if(!audioReady || !audioCtx) return;
+    const freq = kind === "done" ? 740 : kind === "glitch" ? 520 : 660;
+    o.type = "square";
+    o.frequency.setValueAtTime(freq, now);
 
-      const now = audioCtx.currentTime;
-      const o = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.85, now + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
 
-      // Slightly different tones for variety
-      const freq = kind === "done" ? 740 : kind === "glitch" ? 520 : 660;
-      o.type = "square";
-      o.frequency.setValueAtTime(freq, now);
+    const f = audioCtx.createBiquadFilter();
+    f.type = "lowpass";
+    f.frequency.setValueAtTime(2200, now);
 
-      // Envelope: quick blip
-      g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(0.85, now + 0.004);
-      g.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
+    o.connect(f);
+    f.connect(g);
+    g.connect(master);
 
-      // tiny filter to soften harshness
-      const f = audioCtx.createBiquadFilter();
-      f.type = "lowpass";
-      f.frequency.setValueAtTime(2200, now);
+    o.start(now);
+    o.stop(now + 0.07);
+  }
 
-      o.connect(f);
-      f.connect(g);
-      g.connect(master);
+  function noiseTick(){
+    if(!audioCtx) return;
+    const now = audioCtx.currentTime;
+    const bufferSize = 2 * audioCtx.sampleRate * 0.03;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i=0;i<bufferSize;i++) data[i] = (Math.random()*2-1) * 0.12;
 
-      o.start(now);
-      o.stop(now + 0.07);
-    }
+    const src = audioCtx.createBufferSource();
+    src.buffer = buffer;
 
-    function noiseTick(){
-      if(!audioReady || !audioCtx) return;
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.35, now + 0.003);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
 
-      const now = audioCtx.currentTime;
-      const bufferSize = 2 * audioCtx.sampleRate * 0.03; // 30ms
-      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for(let i=0;i<bufferSize;i++){
-        data[i] = (Math.random()*2-1) * 0.12;
+    src.connect(g);
+    g.connect(master);
+    src.start(now);
+    src.stop(now + 0.031);
+  }
+
+  // ===============================
+  // Intro + decrypt flow
+  // ===============================
+  const typeLine = document.getElementById("typeLine");
+  const title = document.getElementById("title");
+  const actions = document.getElementById("actions");
+
+  const decryptWrap = document.getElementById("decryptWrap");
+  const decryptText = document.getElementById("decryptText");
+  const pct = document.getElementById("pct");
+  const barFill = document.getElementById("barFill");
+  const goBtn = document.getElementById("goBtn");
+  const flash = document.getElementById("flash");
+
+  const lines = [
+    "Initialiseer protocol…",
+    "Authenticatie: OK",
+    "Kanaal geopend.",
+    "Doelwit vergrendeld.",
+    ">> PROTOCOL 50"
+  ];
+
+  let currentLine = 0;
+  let currentChar = 0;
+
+  function renderType(){
+    const line = lines[currentLine];
+    const shown = line.slice(0, currentChar);
+    typeLine.innerHTML = `${escapeHtml(shown)}<span class="caret"></span>`;
+  }
+
+  function escapeHtml(s){
+    return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  let tickMs = 45;
+  let timer = null;
+  let introDone = false;
+
+  function step(){
+    if(introDone) return;
+
+    const line = lines[currentLine];
+    currentChar++;
+
+    if(currentChar <= line.length){
+      renderType();
+      const ch = line[currentChar-1];
+      if(ch && ch.trim()){
+        if(Math.random() > 0.25) bleep("key");
+        if(Math.random() > 0.93) noiseTick();
       }
-      const src = audioCtx.createBufferSource();
-      src.buffer = buffer;
-
-      const g = audioCtx.createGain();
-      g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(0.35, now + 0.003);
-      g.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
-
-      src.connect(g);
-      g.connect(master);
-
-      src.start(now);
-      src.stop(now + 0.031);
-    }
-
-    // ===============================
-    // 3) Intro / typewriter + decrypt
-    // ===============================
-    const typeLine = document.getElementById("typeLine");
-    const title = document.getElementById("title");
-    const actions = document.getElementById("actions");
-    const hint = document.getElementById("hint");
-
-    const decryptWrap = document.getElementById("decryptWrap");
-    const decryptText = document.getElementById("decryptText");
-    const pct = document.getElementById("pct");
-    const barFill = document.getElementById("barFill");
-    const goBtn = document.getElementById("goBtn");
-
-    const lines = [
-      "Initialiseer protocol…",
-      "Authenticatie: OK",
-      "Kanaal geopend.",
-      "Doelwit vergrendeld.",
-      ">> PROTOCOL 50"
-    ];
-
-    let currentLine = 0;
-    let currentChar = 0;
-    let introDone = false;
-
-    function escapeHtml(s){
-      return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    }
-
-    function renderType(){
-      const line = lines[currentLine];
-      const shown = line.slice(0, currentChar);
-      typeLine.innerHTML = `${escapeHtml(shown)}<span class="caret"></span>`;
-    }
-
-    let tickMs = 45;
-    let timer;
-
-    function step(){
-      if(introDone) return;
-
-      const line = lines[currentLine];
-      currentChar++;
-
-      if(currentChar <= line.length){
-        renderType();
-        // bleep every typed char except spaces/punctuation sometimes
-        const ch = line[currentChar-1];
-        if(audioReady && ch && ch.trim()){
-          // reduce beeps for readability
-          if(Math.random() > 0.25) bleep("key");
-          if(Math.random() > 0.93) noiseTick();
-        }
-      } else {
-        clearInterval(timer);
-        setTimeout(() => {
-          currentLine++;
-          currentChar = 0;
-
-          if(currentLine >= lines.length){
-            finishIntro();
-          } else {
-            timer = setInterval(step, tickMs);
-          }
-        }, currentLine === lines.length - 1 ? 350 : 220);
-      }
-    }
-
-    function finishIntro(){
-      introDone = true;
-      typeLine.innerHTML = "";
-      title.classList.add("show");
-
-      setTimeout(() => {
-        actions.classList.add("show");
-        hint.style.opacity = ".65";
-        rainIntensity = 0.14;
-        rainSpeed = 0.9;
-
-        startDecryptSequence();
-      }, 550);
-    }
-
-    function startDecryptSequence(){
-      decryptWrap.classList.add("show");
-      goBtn.classList.remove("ready");
-      goBtn.setAttribute("aria-disabled", "true");
-      goBtn.tabIndex = -1;
-
-      const finalLabel = "VERDER GAAN";
-      const scrambleChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
-      const totalMs = 1800;           // decrypt duration
-      const intervalMs = 60;
-      const steps = Math.ceil(totalMs / intervalMs);
-      let s = 0;
-
-      function scrambled(progress){
-        const reveal = Math.floor(finalLabel.length * progress);
-        let out = "";
-        for(let i=0;i<finalLabel.length;i++){
-          if(i < reveal) out += finalLabel[i];
-          else if(finalLabel[i] === " ") out += " ";
-          else out += scrambleChars[Math.floor(Math.random() * scrambleChars.length)];
-        }
-        return out;
-      }
-
-      const iv = setInterval(() => {
-        s++;
-        const progress = Math.min(1, s / steps);
-        const percent = Math.floor(progress * 100);
-
-        pct.textContent = percent + "%";
-        barFill.style.width = percent + "%";
-        decryptText.textContent = scrambled(progress);
-
-        if(audioReady){
-          // short "glitchy" ticks during decrypt
-          if(Math.random() > 0.35) bleep("glitch");
-          if(Math.random() > 0.9) noiseTick();
-        }
-
-        if(progress >= 1){
-          clearInterval(iv);
-          decryptText.textContent = finalLabel;
-          pct.textContent = "100%";
-          barFill.style.width = "100%";
-
-          if(audioReady){
-            // little "success" chirp: two quick beeps
-            bleep("done");
-            setTimeout(() => bleep("done"), 90);
-          }
-
-          setTimeout(() => {
-            goBtn.classList.add("ready");
-            goBtn.removeAttribute("aria-disabled");
-            goBtn.tabIndex = 0;
-          }, 250);
-        }
-      }, intervalMs);
-    }
-
-    timer = setInterval(step, tickMs);
-
-    // Skip behavior (click / Enter / Space) + audio start
-    function userGesture(){
-      initAudio();
-      // resume audio if needed
-      if(audioCtx && audioCtx.state === "suspended") audioCtx.resume();
-    }
-
-    function skip(){
-      userGesture();
-      if(introDone) return;
+    } else {
       clearInterval(timer);
-      finishIntro();
+      setTimeout(() => {
+        currentLine++;
+        currentChar = 0;
+
+        if(currentLine >= lines.length){
+          finishIntro();
+        } else {
+          timer = setInterval(step, tickMs);
+        }
+      }, currentLine === lines.length - 1 ? 350 : 220);
+    }
+  }
+
+  function finishIntro(){
+    introDone = true;
+    typeLine.innerHTML = "";
+
+    // (1) Red warning flash right before showing title
+    flash.classList.remove("on");
+    void flash.offsetWidth; // restart animation
+    flash.classList.add("on");
+    bleep("glitch");
+    setTimeout(() => bleep("glitch"), 90);
+
+    setTimeout(() => {
+      title.classList.add("show");
+      actions.classList.add("show");
+
+      // slow rain slightly for readability
+      rainIntensity = 0.14;
+      rainSpeed = 0.9;
+
+      startDecryptSequence();
+    }, 220);
+  }
+
+  function startDecryptSequence(){
+    decryptWrap.classList.add("show");
+
+    // disable button until decrypt done
+    goBtn.classList.remove("ready");
+    goBtn.setAttribute("aria-disabled", "true");
+    goBtn.tabIndex = -1;
+
+    const finalLabel = "LEVEL 1 UNLOCKED";
+    const scrambleChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+    const totalMs = 1800;
+    const intervalMs = 60;
+    const steps = Math.ceil(totalMs / intervalMs);
+    let s = 0;
+
+    function scrambled(progress){
+      const reveal = Math.floor(finalLabel.length * progress);
+      let out = "";
+      for(let i=0;i<finalLabel.length;i++){
+        if(finalLabel[i] === " "){ out += " "; continue; }
+        if(i < reveal) out += finalLabel[i];
+        else out += scrambleChars[Math.floor(Math.random() * scrambleChars.length)];
+      }
+      return out;
     }
 
-    window.addEventListener("click", () => {
-      // first click: start audio; also skip intro
-      skip();
-    });
+    const iv = setInterval(() => {
+      s++;
+      const progress = Math.min(1, s / steps);
+      const percent = Math.floor(progress * 100);
 
-    window.addEventListener("keydown", (e) => {
-      if(e.key === "Enter" || e.key === " "){
-        e.preventDefault();
-        skip();
-      } else {
-        // other keys just unlock audio (no skip)
-        userGesture();
+      pct.textContent = percent + "%";
+      barFill.style.width = percent + "%";
+      decryptText.textContent = scrambled(progress);
+
+      if(Math.random() > 0.35) bleep("glitch");
+      if(Math.random() > 0.9) noiseTick();
+
+      if(progress >= 1){
+        clearInterval(iv);
+        pct.textContent = "100%";
+        barFill.style.width = "100%";
+        decryptText.textContent = scrambled(1); // end state looks "locked in"
+
+        bleep("done");
+        setTimeout(() => bleep("done"), 90);
+
+        setTimeout(() => {
+          goBtn.classList.add("ready");
+          goBtn.removeAttribute("aria-disabled");
+          goBtn.tabIndex = 0;
+        }, 250);
       }
-    });
-  </script>
+    }, intervalMs);
+  }
+
+  // ===============================
+  // Start button (unlocks audio + starts everything)
+  // ===============================
+  document.getElementById("startBtn").addEventListener("click", () => {
+    initAudio();
+    if(audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+
+    running = true;
+    requestAnimationFrame(draw);
+
+    // remove overlay & begin
+    document.getElementById("startScreen").remove();
+    timer = setInterval(step, tickMs);
+  });
+</script>
 </body>
 </html>
