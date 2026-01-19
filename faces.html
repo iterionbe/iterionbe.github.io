@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="nl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Protocol 50 — 32x32 Faces</title>
+    <style>
+        :root{
+            --green:#00ff66;
+            --bg:#0b0f14;
+            --panel:rgba(0,0,0,.55);
+        }
+        body{
+            margin:0;
+            background: radial-gradient(1200px 600px at 70% 0%, #111827 0%, var(--bg) 55%);
+            color:rgba(0,255,102,.9);
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+        }
+        .wrap{max-width:1100px;margin:0 auto;padding:24px 16px 40px;}
+        h2{margin:0 0 6px; letter-spacing:.18em;}
+        .sub{color:rgba(0,255,102,.65); margin-bottom:14px; line-height:1.4;}
+
+        .grid{
+            display:grid;
+            grid-template-columns:repeat(5,1fr);
+            gap:14px;
+        }
+        @media (max-width:900px){ .grid{grid-template-columns:repeat(4,1fr);} }
+        @media (max-width:700px){ .grid{grid-template-columns:repeat(3,1fr);} }
+        @media (max-width:480px){ .grid{grid-template-columns:repeat(2,1fr);} }
+
+        .card{
+            background:var(--panel);
+            border:1px solid rgba(0,255,102,.22);
+            border-radius:14px;
+            padding:12px;
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            gap:10px;
+        }
+        canvas.face{
+            width:128px;   /* 32 * 4 */
+            height:128px;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            border-radius:12px;
+            border:1px solid rgba(0,255,102,.18);
+            background: rgba(0,0,0,.35);
+            box-shadow: inset 0 0 0 1px rgba(0,255,102,.06);
+        }
+        .name{
+            font-size:12px;
+            letter-spacing:.08em;
+            color:rgba(0,255,102,.8);
+            text-align:center;
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <h2>32×32 — ACTION FACES</h2>
+    <div class="sub">Amiga-stijl portretten (32×32), met dither/shading en iconische kenmerken.</div>
+
+    <div class="grid">
+        <div class="card"><canvas class="sprite" width="48" height="64" data-sprite="rambo"></canvas><div class="name">Rambo</div></div>
+        <div class="card"><canvas class="sprite" width="48" height="64" data-sprite="terminator"></canvas><div class="name">Terminator</div></div>
+        <div class="card"><canvas class="sprite" width="48" height="64" data-sprite="mcclane"></canvas><div class="name">John McClane</div></div>
+        <div class="card"><canvas class="sprite" width="48" height="64" data-sprite="predator"></canvas><div class="name">Predator</div></div>
+        <div class="card"><canvas class="sprite" width="48" height="64" data-sprite="robocop"></canvas><div class="name">RoboCop</div></div>
+
+        <div class="card"><canvas class="sprite" width="48" height="64" data-sprite="indy"></canvas><div class="name">Indiana Jones</div></div>
+        <div class="card"><canvas class="sprite" width="48" height="64" data-sprite="ripley"></canvas><div class="name">Ellen Ripley</div></div>
+        <div class="card"><canvas class="sprite" width="48" height="64" data-sprite="inspectorlee"></canvas><div class="name">Inspector Lee</div></div>
+        <div class="card"><canvas class="sprite" width="48" height="64" data-sprite="frankdux"></canvas><div class="name">Frank Dux</div></div>
+        <div class="card"><canvas class="sprite" width="48" height="64" data-sprite="caseyryback"></canvas><div class="name">Casey Ryback</div></div>
+    </div>
+</div>
+
+<script>
+    (() => {
+        // --- Amiga-ish palette ---
+        const C = {
+            K:"#071014", k:"#0b1a20",
+            W:"#e8f1f2",
+            G:"#2b3a4a", g:"#4b6076",
+            B:"#2b6cff", b:"#1c3b8f",
+            R:"#d83b3b",
+            Y:"#f4d54a",
+            O:"#d38b2c",
+            P:"#b34cff",
+            N:"#00c853",
+            S:"#c98b62",
+            T:"#8c5a3c",
+            H:"#2a1a14",
+        };
+
+        // Dither helper (checker pattern)
+        function put(ctx, x, y, col){
+            ctx.fillStyle = col;
+            ctx.fillRect(x,y,1,1);
+        }
+        function dith(ctx, x, y, a, b){
+            const checker = ((x+y)&1)===0;
+            put(ctx, x, y, checker ? a : b);
+        }
+
+        // Draw a portrait from a 32x32 map of tokens
+        // Tokens:
+        //  ' ' none
+        //  'K','k','W','G','g','B','b','R','Y','O','P','N','S','T','H' direct colors
+        //  '.' shadow dither, ':' light dither
+        function drawPortrait(cv, map){
+            const ctx = cv.getContext("2d");
+            ctx.clearRect(0,0,32,32);
+
+            // background
+            ctx.fillStyle = C.K;
+            ctx.fillRect(0,0,32,32);
+
+            // tiny noise
+            for(let i=0;i<80;i++){
+                ctx.fillStyle = (Math.random()>0.5) ? "rgba(255,255,255,.03)" : "rgba(0,0,0,.12)";
+                ctx.fillRect((Math.random()*32)|0, (Math.random()*32)|0, 1, 1);
+            }
+
+            for(let y=0;y<32;y++){
+                const row = map[y];
+                for(let x=0;x<32;x++){
+                    const t = row[x];
+                    if(t === " " ) continue;
+                    if(t === "."){ dith(ctx,x,y,"rgba(0,0,0,.22)","rgba(0,0,0,0)"); continue; }
+                    if(t === ":"){ dith(ctx,x,y,"rgba(255,255,255,.10)","rgba(255,255,255,0)"); continue; }
+                    const col = C[t];
+                    if(col) put(ctx,x,y,col);
+                }
+            }
+
+            // subtle frame
+            ctx.globalAlpha = 0.35;
+            ctx.fillStyle = C.N;
+            ctx.fillRect(0,0,32,1);
+            ctx.fillRect(0,31,32,1);
+            ctx.fillRect(0,0,1,32);
+            ctx.fillRect(31,0,1,32);
+            ctx.globalAlpha = 1;
+        }
+
+        // Helpers to build common face shapes
+        function blank(){ return Array.from({length:32},()=> " ".repeat(32)); }
+        function set(map,x,y,ch){
+            if(y<0||y>=32||x<0||x>=32) return;
+            const r = map[y].split("");
+            r[x]=ch; map[y]=r.join("");
+        }
+        function hline(map,x0,x1,y,ch){ for(let x=x0;x<=x1;x++) set(map,x,y,ch); }
+        function vline(map,y0,y1,x,ch){ for(let y=y0;y<=y1;y++) set(map,x,y,ch); }
+        function fillRect(map,x0,y0,x1,y1,ch){
+            for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++) set(map,x,y,ch);
+        }
+        function ovalFace(map, cx, cy, rx, ry, skinMid="S", skinSh="T"){
+            for(let y=cy-ry;y<=cy+ry;y++){
+                for(let x=cx-rx;x<=cx+rx;x++){
+                    const dx=(x-cx)/rx, dy=(y-cy)/ry;
+                    if(dx*dx+dy*dy<=1){
+                        // edge shading
+                        const edge = dx*dx+dy*dy > 0.82;
+                        set(map,x,y, edge ? skinSh : skinMid);
+                    }
+                }
+            }
+        }
+        function eyes(map, y){
+            set(map,12,y,"K"); set(map,13,y,"W"); set(map,14,y,"K");
+            set(map,18,y,"K"); set(map,19,y,"W"); set(map,20,y,"K");
+            // brow shadow
+            hline(map,11,15,y-1,"H");
+            hline(map,17,21,y-1,"H");
+        }
+        function mouth(map, y){
+            hline(map,14,18,y,"H");
+            set(map,13,y,"T"); set(map,19,y,"T");
+        }
+        function nose(map, y){
+            set(map,16,y,"T");
+            set(map,15,y+1,"T");
+        }
+
+        // --- Build 10 portraits ---
+        const FACES = {};
+
+        // Rambo (red bandana, rugged)
+        {
+            const m=blank();
+            fillRect(m,0,0,31,31,"k"); // dark backdrop
+            ovalFace(m,16,16,10,12,"S","T");
+            // hair + bandana
+            fillRect(m,6,6,26,10,"R");
+            fillRect(m,6,5,26,6,"H");
+            // eyes/nose/mouth + stubble dither
+            eyes(m,15); nose(m,17); mouth(m,21);
+            for(let x=9;x<=23;x++) set(m,x,23, ((x&1)?".":":"));
+            // cheek shadows
+            fillRect(m,7,14,8,22,"T");
+            fillRect(m,24,14,25,22,"T");
+            // shoulders
+            fillRect(m,6,26,26,31,"G");
+            FACES.rambo=m;
+        }
+
+        // Terminator (sunglasses, leather/metal)
+        {
+            const m=blank();
+            fillRect(m,0,0,31,31,"k");
+            ovalFace(m,16,16,10,12,"S","T");
+            // short hair
+            fillRect(m,7,5,25,8,"H");
+            // sunglasses
+            fillRect(m,9,14,22,17,"K");
+            hline(m,9,22,13,"G");
+            set(m,15,15,"W"); set(m,20,15,"W"); // glints
+            // nose/mouth
+            nose(m,18); mouth(m,22);
+            // jacket collar
+            fillRect(m,5,26,27,31,"G");
+            fillRect(m,10,26,22,28,"g");
+            FACES.terminator=m;
+        }
+
+        // McClane (messy hair, white vest)
+        {
+            const m=blank();
+            fillRect(m,0,0,31,31,"k");
+            ovalFace(m,16,16,10,12,"S","T");
+            // messy hair
+            for(let x=7;x<=25;x++){ set(m,x,6,"H"); if(x%3===0) set(m,x,5,"H"); }
+            // eyes/nose/mouth
+            eyes(m,15); nose(m,17); mouth(m,22);
+            // small red cut
+            set(m,23,19,"R"); set(m,24,19,"R");
+            // vest + strap
+            fillRect(m,7,26,25,31,"W");
+            vline(m,26,31,16,"G");
+            FACES.mcclane=m;
+        }
+
+        // Predator (mask + dreads + purple tech)
+        {
+            const m=blank();
+            fillRect(m,0,0,31,31,"k");
+            // mask base
+            ovalFace(m,16,16,11,13,"G","g");
+            // eyes (green glow)
+            set(m,12,15,"N"); set(m,19,15,"N");
+            set(m,12,16,"N"); set(m,19,16,"N");
+            // mandibles detail
+            fillRect(m,12,21,20,23,"O");
+            hline(m,14,18,20,"Y");
+            // dreads
+            for(let x=4;x<=28;x+=4){ vline(m,8,30,x,"H"); if(x%8===0) vline(m,10,31,x+1,"H"); }
+            // tech highlights
+            set(m,10,13,"P"); set(m,22,13,"P"); set(m,16,10,"P");
+            FACES.predator=m;
+        }
+
+        // RoboCop (helmet + visor)
+        {
+            const m=blank();
+            fillRect(m,0,0,31,31,"k");
+            // helmet shell
+            ovalFace(m,16,15,11,13,"g","G");
+            // visor
+            fillRect(m,8,14,24,18,"K");
+            set(m,10,16,"W"); set(m,22,16,"W");
+            // mouth plate
+            fillRect(m,12,22,20,24,"G");
+            // chin highlight
+            hline(m,14,18,24,"W");
+            // neck/shoulders
+            fillRect(m,6,26,26,31,"G");
+            fillRect(m,10,26,22,28,"g");
+            FACES.robocop=m;
+        }
+
+        // Indiana Jones (hat + stubble)
+        {
+            const m=blank();
+            fillRect(m,0,0,31,31,"k");
+            ovalFace(m,16,17,10,12,"S","T");
+            // hat
+            fillRect(m,6,5,26,9,"O");
+            fillRect(m,4,9,28,10,"O");
+            // eyes/nose/mouth
+            eyes(m,16); nose(m,18); mouth(m,22);
+            // stubble dither
+            for(let x=9;x<=23;x++) set(m,x,24, ((x&1)?".":":"));
+            // collar
+            fillRect(m,7,26,25,31,"T");
+            FACES.indy=m;
+        }
+
+        // Ripley (short hair + blue jumpsuit collar)
+        {
+            const m=blank();
+            fillRect(m,0,0,31,31,"k");
+            ovalFace(m,16,16,10,12,"S","T");
+            // hair
+            fillRect(m,7,5,25,8,"H");
+            fillRect(m,6,8,26,10,"H");
+            // eyes/nose/mouth (softer brows)
+            set(m,12,14,"K"); set(m,13,14,"W"); set(m,14,14,"K");
+            set(m,18,14,"K"); set(m,19,14,"W"); set(m,20,14,"K");
+            nose(m,17); mouth(m,22);
+            // jumpsuit collar
+            fillRect(m,7,26,25,31,"b");
+            fillRect(m,12,26,20,28,"B");
+            FACES.ripley=m;
+        }
+
+        // Inspector Lee (Jackie-ish: neat hair + warm jacket)
+        {
+            const m=blank();
+            fillRect(m,0,0,31,31,"k");
+            ovalFace(m,16,16,10,12,"S","T");
+            // neat hair
+            fillRect(m,7,5,25,7,"H");
+            fillRect(m,8,7,24,9,"H");
+            // eyes/nose/mouth
+            eyes(m,15); nose(m,17); mouth(m,22);
+            // jacket
+            fillRect(m,6,26,26,31,"G");
+            // badge hint
+            set(m,11,27,"Y"); set(m,12,27,"Y"); set(m,11,28,"Y");
+            FACES.inspectorlee=m;
+        }
+
+        // Frank Dux (Van Damme-ish: headband + bruised cheek)
+        {
+            const m=blank();
+            fillRect(m,0,0,31,31,"k");
+            ovalFace(m,16,16,10,12,"S","T");
+            // headband
+            fillRect(m,7,6,25,8,"R");
+            // hair
+            fillRect(m,7,5,25,6,"H");
+            // eyes/nose/mouth
+            eyes(m,15); nose(m,17); mouth(m,22);
+            // cheek bruise
+            set(m,23,18,"R"); set(m,24,19,"R");
+            // gi-ish collar
+            fillRect(m,7,26,25,31,"W");
+            hline(m,10,22,26,"G");
+            FACES.frankdux=m;
+        }
+
+        // Casey Ryback (Seagal-ish: dark hair + stern face)
+        {
+            const m=blank();
+            fillRect(m,0,0,31,31,"k");
+            ovalFace(m,16,16,10,12,"S","T");
+            // slick dark hair
+            fillRect(m,6,5,26,8,"H");
+            fillRect(m,8,8,24,9,"H");
+            // eyes/nose/mouth (heavier brows)
+            hline(m,10,15,13,"H"); hline(m,17,22,13,"H");
+            set(m,12,15,"K"); set(m,13,15,"W"); set(m,14,15,"K");
+            set(m,18,15,"K"); set(m,19,15,"W"); set(m,20,15,"K");
+            nose(m,18);
+            hline(m,13,19,22,"H");
+            // tactical collar
+            fillRect(m,6,26,26,31,"G");
+            set(m,16,27,"g"); set(m,15,28,"g"); set(m,17,28,"g");
+            FACES.caseyryback=m;
+        }
+
+        // Render all canvases
+        document.querySelectorAll("canvas.face").forEach(cv=>{
+            const key = cv.dataset.face;
+            const map = FACES[key];
+            if(map) drawPortrait(cv, map);
+        });
+    })();
+</script>
+</body>
+</html>
