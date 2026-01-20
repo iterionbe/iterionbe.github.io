@@ -906,22 +906,14 @@
     if (pct >= 100) {
       clearInterval(window.__johanProgressTimer);
       window.__johanProgressTimer = null;
-      // Progress klaar -> toon Guru Meditation scherm
-progressOverlay.classList.add("hidden");
 
-const guruOverlay = document.getElementById("guruOverlay");
-const guruMsg = document.getElementById("guruMsg");
-const guruCode = document.getElementById("guruCode");
+      // verberg progress overlay
+      progressOverlay.classList.add("hidden");
 
-if (guruMsg) guruMsg.textContent = "Houd je Strava in de gaten";
-if (guruCode) {
-  // optioneel: random “code” voor extra retro feel
-  const hex = () => Math.floor(Math.random()*0xFFFF).toString(16).padStart(4,"0").toUpperCase();
-  guruCode.textContent = `#00000004.${hex()}${hex()}`;
-}
-guruOverlay.classList.remove("hidden");
-
+      // fade to black + matrix message
+      showFadeToBlackMatrixMessage("Houd je Strava in de gaten");
     }
+
   }, tickMs);
 };
 
@@ -961,6 +953,46 @@ guruOverlay.classList.remove("hidden");
     // initial render (locked)
     render();
   })();
+
+  function showFadeToBlackMatrixMessage(text){
+    const blackout = document.getElementById("blackout");
+    const matrixMsg = document.getElementById("matrixMsg");
+    if (!blackout || !matrixMsg) return;
+
+    // Build per-character spans so we can stagger the “fall”
+    matrixMsg.innerHTML = "";
+    const baseDelay = 18; // ms tussen letters (matrix-stagger)
+    let i = 0;
+
+    for (const ch of text){
+      if (ch === " "){
+        const space = document.createElement("span");
+        space.innerHTML = "&nbsp;";
+        matrixMsg.appendChild(space);
+        continue;
+      }
+
+      const s = document.createElement("span");
+      s.className = "ch" + ((Math.random() < 0.16) ? " glitch" : "");
+      s.textContent = ch;
+
+      // Stagger + kleine random rotatie voor “gevallen” gevoel
+      const d = (i * baseDelay) + Math.floor(Math.random() * 60);
+      const rot = (Math.random() * 18 - 9).toFixed(2); // -9°..+9°
+      s.style.setProperty("--d", `${d}ms`);
+      s.style.setProperty("--rot", `${rot}deg`);
+
+      matrixMsg.appendChild(s);
+      i++;
+    }
+
+    // Trigger fade
+    blackout.classList.remove("hidden");
+    // force reflow so transition always fires
+    void blackout.offsetWidth;
+    blackout.classList.add("show");
+  }
+
 </script>
 </body>
 </html>
