@@ -11,7 +11,7 @@
     --bg:#000;
     --glow: 0 0 12px rgba(0,255,102,.35), 0 0 28px rgba(0,255,102,.2);
   }
-  html,body{height:100%; margin:0; background:var(--bg); color:var(--green); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+  html,body{height:100%; margin:0; background:var(--bg); color:var(--green); font-family: "TopazPlus",ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
   canvas{position:fixed; inset:0; width:100%; height:100%; display:block; background:#000;}
   .overlay{position:fixed; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;}
   .panel{width:min(900px, 92vw); text-align:center; padding:24px 16px; position:relative; z-index:2;}
@@ -178,6 +178,14 @@
     70%{opacity:.85}
     100%{opacity:0}
   }
+
+  @font-face{
+    font-family: "TopazPlus";
+    src: url("./amiga-topaz.otf.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
 </style>
 </head>
 
@@ -217,7 +225,8 @@
   const canvas = document.getElementById("rain");
   const ctx = canvas.getContext("2d", { alpha: false });
 
-  const chars = "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  //const charset = "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const chars = "WAMPIE50";
   let w, h, columns, drops, fontSize;
 
   function resize(){
