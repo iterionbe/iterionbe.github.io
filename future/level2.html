@@ -1,0 +1,812 @@
+<!doctype html>
+<html lang="nl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Level 2</title>
+    <style>
+        :root{
+            --green: rgba(0,255,102,.98);
+            --bg: #050705;
+            --card: rgba(0,0,0,.55);
+            --stroke: rgba(0,255,102,.28);
+        }
+        *{ box-sizing:border-box; }
+        body{
+            margin:0;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+            background: radial-gradient(1200px 600px at 50% 0%, rgba(0,255,102,.10), transparent 60%),
+            linear-gradient(#020402, #050705);
+            color: var(--green);
+            overflow-x:hidden;
+        }
+        header{
+            position: sticky; top:0; z-index:50;
+            backdrop-filter: blur(10px);
+            background: rgba(0,0,0,.35);
+            border-bottom: 1px solid rgba(0,255,102,.12);
+            padding: 12px 14px;
+        }
+        .topRow{
+            display:flex; align-items:center; justify-content:space-between;
+            gap:10px;
+            max-width: 980px; margin:0 auto;
+        }
+        .title{
+            font-weight: 900;
+            letter-spacing:.12em;
+            text-transform: uppercase;
+            font-size: 14px;
+            opacity:.95;
+        }
+        .mini{
+            font-size: 12px;
+            opacity:.75;
+            letter-spacing:.06em;
+            text-transform: uppercase;
+        }
+
+        .wrap{
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 18px 14px 120px;
+        }
+
+        .posterBlock{
+            margin: 18px 0 52px;
+            border: 1px solid rgba(0,255,102,.10);
+            border-radius: 18px;
+            background: rgba(0,0,0,.20);
+            box-shadow: 0 10px 40px rgba(0,0,0,.35);
+            overflow:hidden;
+        }
+
+        .blockHead{
+            display:flex;
+            align-items:baseline;
+            justify-content:space-between;
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(0,255,102,.10);
+            background: rgba(0,0,0,.28);
+        }
+        .blockHead b{
+            letter-spacing:.10em;
+            text-transform: uppercase;
+            font-size: 13px;
+        }
+        .blockHead span{
+            font-size: 12px;
+            opacity:.75;
+        }
+
+        /* 3D flip card */
+        .flipStage{
+            perspective: 1200px;
+            padding: 18px;
+        }
+        .flipCard{
+            width: 100%;
+            aspect-ratio: 2 / 3; /* filmposter-ish */
+            max-height: 78vh;
+            margin: 0 auto;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 900ms cubic-bezier(.18,.95,.18,1);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(0,255,102,.18);
+            background: rgba(0,0,0,.35);
+            box-shadow: 0 10px 30px rgba(0,0,0,.45), 0 0 18px rgba(0,255,102,.08);
+        }
+        .flipCard.flipped{
+            transform: rotateY(180deg);
+        }
+        .face{
+            position:absolute;
+            inset:0;
+            backface-visibility: hidden;
+            display:flex;
+            align-items:stretch;
+            justify-content:stretch;
+        }
+
+        /* front: poster image */
+        .front{
+            background:#000;
+        }
+        .front img{
+            width:100%;
+            height:100%;
+            object-fit: cover;
+            display:block;
+            filter: contrast(1.05);
+        }
+
+        /* back: question */
+        .back{
+            transform: rotateY(180deg);
+            background:
+                    radial-gradient(900px 600px at 50% 0%, rgba(0,255,102,.10), transparent 60%),
+                    linear-gradient(#030503, #050705);
+            padding: 18px;
+            gap: 12px;
+            flex-direction: column;
+            justify-content: center;
+            text-align:center;
+        }
+        .qTitle{
+            font-weight: 900;
+            letter-spacing:.12em;
+            text-transform: uppercase;
+            font-size: 14px;
+            margin-bottom: 8px;
+            opacity: .95;
+        }
+        .qText{
+            font-size: 18px;
+            line-height: 1.35;
+            margin: 0 auto;
+            max-width: 36ch;
+            text-shadow: 0 0 14px rgba(0,255,102,.12);
+        }
+        .answerRow{
+            display:flex;
+            justify-content:center;
+            gap:10px;
+            margin-top: 14px;
+            align-items:center;
+            flex-wrap: wrap;
+        }
+        .answerRow input{
+            width: 64px;
+            text-align:center;
+            font-size: 26px;
+            font-weight: 900;
+            letter-spacing:.08em;
+            padding: 10px 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(0,255,102,.45);
+            background: rgba(0,255,102,.08);
+            color: var(--green);
+            outline: none;
+            text-transform: uppercase;
+        }
+        .answerRow input:focus{
+            border-color: rgba(0,255,102,.90);
+            box-shadow: 0 0 0 3px rgba(0,255,102,.12);
+        }
+        .hint{
+            font-size: 12px;
+            opacity: .75;
+            margin-top: 10px;
+            letter-spacing:.06em;
+            text-transform: uppercase;
+        }
+        .okBadge{
+            display:inline-flex;
+            align-items:center;
+            gap:8px;
+            padding: 8px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(0,255,102,.35);
+            background: rgba(0,255,102,.10);
+            font-size: 12px;
+            letter-spacing:.08em;
+            text-transform: uppercase;
+            opacity: 0;
+            transform: translateY(6px);
+            transition: 250ms ease;
+        }
+        .okBadge.show{
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Final entry panel */
+        .finalPanel{
+            margin-top: 24px;
+            border: 1px solid rgba(0,255,102,.14);
+            background: rgba(0,0,0,.30);
+            border-radius: 18px;
+            padding: 18px 14px;
+            box-shadow: 0 10px 34px rgba(0,0,0,.35);
+        }
+        .finalPanel h2{
+            margin:0 0 10px;
+            font-size: 14px;
+            letter-spacing:.12em;
+            text-transform: uppercase;
+            font-weight: 900;
+        }
+        .finalPanel p{
+            margin:0 0 12px;
+            opacity:.8;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        .finalRow{
+            display:flex;
+            gap:10px;
+            flex-wrap: wrap;
+            align-items:center;
+            justify-content: space-between;
+        }
+        .wordInputs{
+            display:flex;
+            gap:10px;
+            flex-wrap: wrap;
+            align-items:center;
+        }
+        .wordInputs input{
+            width: 56px;
+            text-align:center;
+            font-size: 22px;
+            font-weight: 900;
+            letter-spacing:.10em;
+            padding: 10px 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(0,255,102,.45);
+            background: rgba(0,255,102,.08);
+            color: var(--green);
+            outline: none;
+            text-transform: uppercase;
+        }
+        .btn{
+            cursor:pointer;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(0,255,102,.65);
+            background: rgba(0,255,102,.12);
+            color: var(--green);
+            font-weight: 900;
+            letter-spacing:.10em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .btn:hover{
+            border-color: rgba(0,255,102,.92);
+            background: rgba(0,255,102,.16);
+        }
+        .toast{
+            margin-top: 10px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(0,255,102,.22);
+            background: rgba(0,0,0,.25);
+            font-size: 12px;
+            letter-spacing:.06em;
+            text-transform: uppercase;
+            opacity:.9;
+            display:none;
+        }
+        .toast.show{ display:block; }
+        .toast.bad{ border-color: rgba(255,90,90,.45); color: rgba(255,140,140,.95); }
+
+        /* Unlock overlay + flame */
+        .unlock{
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            background: rgba(0,0,0,.92);
+            opacity:0;
+            pointer-events:none;
+            transition: opacity 700ms ease;
+        }
+        .unlock.show{
+            opacity:1;
+            pointer-events:auto;
+        }
+        .unlockCard{
+            width:min(860px, 92vw);
+            text-align:center;
+            border: 1px solid rgba(0,255,102,.18);
+            background: rgba(0,0,0,.40);
+            border-radius: 22px;
+            padding: 22px 16px 18px;
+            box-shadow: 0 10px 40px rgba(0,0,0,.55);
+            position:relative;
+            overflow:hidden;
+        }
+        .unlockTitle{
+            font-size: clamp(22px, 4vw, 52px);
+            font-weight: 950;
+            letter-spacing:.12em;
+            text-transform: uppercase;
+            margin: 10px 0 0;
+            color: var(--green);
+            text-shadow: 0 0 22px rgba(0,255,102,.18);
+        }
+
+        /* Simple CSS flame */
+        .flameWrap{
+            height: 220px;
+            display:flex;
+            align-items:flex-end;
+            justify-content:center;
+            margin: 8px 0 6px;
+            position:relative;
+        }
+        .flame{
+            width: 120px;
+            height: 180px;
+            border-radius: 60% 60% 60% 60%;
+            background: radial-gradient(circle at 50% 80%, rgba(0,255,102,.95), rgba(0,255,102,.25) 60%, rgba(0,0,0,0) 70%);
+            filter: blur(.2px);
+            transform-origin: 50% 100%;
+            animation: flame 900ms infinite ease-in-out;
+            box-shadow: 0 0 40px rgba(0,255,102,.22);
+            position:relative;
+            overflow:hidden;
+        }
+        .flame::before{
+            content:"";
+            position:absolute;
+            inset: -20% -10% -10% -10%;
+            background: radial-gradient(circle at 50% 80%, rgba(0,255,102,.95), rgba(0,255,102,.10) 55%, rgba(0,0,0,0) 70%);
+            transform: scale(.72);
+            animation: inner 700ms infinite ease-in-out;
+            opacity:.9;
+        }
+        .flame::after{
+            content:"";
+            position:absolute;
+            inset:-30% -20% -20% -20%;
+            background: radial-gradient(circle at 50% 82%, rgba(0,255,102,.70), rgba(0,255,102,.08) 60%, rgba(0,0,0,0) 72%);
+            transform: scale(.50);
+            animation: inner 540ms infinite ease-in-out reverse;
+            opacity:.75;
+        }
+        @keyframes flame{
+            0%{ transform: skewX(-2deg) scaleY(1.00); }
+            50%{ transform: skewX(3deg) scaleY(1.06); }
+            100%{ transform: skewX(-2deg) scaleY(1.00); }
+        }
+        @keyframes inner{
+            0%{ transform: translateX(-3px) scale(.70); }
+            50%{ transform: translateX(4px) scale(.78); }
+            100%{ transform: translateX(-3px) scale(.70); }
+        }
+
+        /* --- One poster per scroll (paging) --- */
+        html, body{
+            height: 100%;
+        }
+
+        .wrap{ max-width: 980px; margin: 0 auto; padding: 0; }
+
+        .pager{
+            height: 100vh;              /* altijd zichtbaar */
+            overflow-y: auto;
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            padding-top: 64px;          /* ruimte voor header */
+        }
+        header{
+            position: fixed; top:0; left:0; right:0;
+            z-index: 50;
+        }
+        .page{
+            min-height: calc(100vh - 64px);
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            padding: 18px 14px 22px;
+        }
+
+
+        /* posterBlock moet de volledige “page” vullen maar met mooie margins */
+        .posterBlock{
+            margin: 0;
+            width: min(920px, 92vw);
+        }
+
+        /* final panel als eigen page */
+        .finalPanel{
+            width: min(920px, 92vw);
+            margin: 0;
+        }
+
+
+        /* helper */
+        .spacerEnd{
+            height: 50vh;
+            opacity:0;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="topRow">
+        <div class="title">Level 2</div>
+        <div class="mini" id="status">Scroll om de posters om te draaien</div>
+    </div>
+</header>
+
+<div class="wrap">
+    <div class="pager" id="pager"></div>
+</div>
+
+<div class="unlock" id="unlock">
+    <div class="unlockCard">
+        <div class="flameWrap">
+            <div class="flame" aria-hidden="true"></div>
+        </div>
+        <div class="unlockTitle">Level 2 unlocked</div>
+    </div>
+</div>
+
+<script>
+    // ===== CONFIG: vervang straks posters + vragen + correcte letters =====
+    const ROUNDS = [
+        { img: "./poster1.png", question: "VRAAG 1 (placeholder).", letter: "F" },
+        { img: "./poster2.png", question: "VRAAG 2 (placeholder).", letter: "U" },
+        { img: "./poster3.png", question: "VRAAG 3 (placeholder).", letter: "E" },
+        { img: "./poster4.png", question: "VRAAG 4 (placeholder).", letter: "G" },
+        { img: "./poster5.png", question: "VRAAG 5 (placeholder).", letter: "O" },
+    ];
+    const FINAL_WORD = "FUEGO";
+
+    const pager = document.getElementById("pager");
+    const status = document.getElementById("status");
+
+    // Build DOM
+    const blocks = [];
+    ROUNDS.forEach((r, idx) => {
+        const n = idx + 1;
+        const block = document.createElement("section");
+        block.className = "posterBlock";
+        block.innerHTML = `
+      <div class="blockHead">
+        <b>Poster ${n} / 5</b>
+        <span>Scroll naar beneden om om te draaien</span>
+      </div>
+
+      <div class="flipStage">
+        <div class="flipCard" id="card-${idx}" data-idx="${idx}">
+          <div class="face front">
+            <img src="${r.img}" alt="Poster ${n}">
+          </div>
+          <div class="face back">
+            <div class="qTitle">Opdracht ${n}</div>
+            <div class="qText">${escapeHTML(r.question)}</div>
+
+            <div class="answerRow">
+              <input
+                inputmode="text"
+                maxlength="1"
+                autocomplete="off"
+                autocapitalize="characters"
+                spellcheck="false"
+                aria-label="Antwoord letter ${n}"
+                id="ans-${idx}"
+              />
+              <span class="okBadge" id="ok-${idx}">✓ bewaard</span>
+            </div>
+
+            <div class="hint">Tip: 1 letter (A–Z)</div>
+          </div>
+        </div>
+      </div>
+    `;
+        const page = document.createElement("div");
+        page.className = "page";
+        page.appendChild(block);
+        pager.appendChild(page);
+        blocks.push(block);
+
+    });
+
+    // Final panel after posters
+    const final = document.createElement("section");
+    final.className = "finalPanel";
+    final.id = "finalPanel";
+    final.innerHTML = `
+    <h2>Vul het woord in</h2>
+    <p>Gebruik de 5 letters die je vond op de achterkant van de posters.</p>
+    <div class="finalRow">
+      <div class="wordInputs" id="wordInputs">
+        ${Array.from({length:5}).map((_,i)=>`<input id="w-${i}" maxlength="1" autocapitalize="characters" autocomplete="off" spellcheck="false" inputmode="text" aria-label="Letter ${i+1}">`).join("")}
+      </div>
+      <button class="btn" id="checkBtn">Check</button>
+    </div>
+    <div class="toast" id="toast"></div>
+  `;
+    const finalPage = document.createElement("div");
+    finalPage.className = "page";
+    finalPage.appendChild(final);
+    pager.appendChild(finalPage);
+
+    // ===== Letter capture per poster =====
+    const found = Array(5).fill("");
+
+    // ===== Scroll lock per page =====
+    // Regel: je mag niet voorbij de eerste niet-ingevulde poster.
+    // Je mag wél terug naar eerdere pages.
+    let maxAllowedPage = 0; // index van page (0..5). 0 = poster1, 1=poster2, ..., 4=poster5, 5=final
+    let programmaticScroll = false;
+
+    // Helper: scroll naar page index
+    function scrollToPage(i){
+        const pages = [...document.querySelectorAll(".page")];
+        const clamped = Math.max(0, Math.min(pages.length - 1, i));
+        programmaticScroll = true;
+        pages[clamped].scrollIntoView({ behavior: "smooth", block: "start" });
+        setTimeout(()=> programmaticScroll = false, 350);
+    }
+
+    function computeMaxAllowedPage(){
+        // je moet per poster: flip + letter ingevuld hebben om verder te mogen
+        for (let i = 0; i < 5; i++){
+            if (!flipped[i] || !found[i]) return i; // je zit vast op deze page
+        }
+        return 5; // alles ok -> final page
+    }
+
+
+    // Detecteer huidige page op basis van scrollpositie in pager
+    function getCurrentPageIndex(){
+        const pages = [...document.querySelectorAll(".page")];
+        const pagerRect = pager.getBoundingClientRect();
+        let bestIdx = 0;
+        let bestDist = Infinity;
+        pages.forEach((p, idx) => {
+            const r = p.getBoundingClientRect();
+            const dist = Math.abs(r.top - pagerRect.top);
+            if (dist < bestDist){
+                bestDist = dist;
+                bestIdx = idx;
+            }
+        });
+        return bestIdx;
+    }
+
+    // “Hard gate”: als iemand voorbij maxAllowedPage probeert te scrollen, spring terug
+    pager.addEventListener("scroll", () => {
+        if (programmaticScroll) return;
+
+        const current = getCurrentPageIndex();
+        const newMax = computeMaxAllowedPage();
+        maxAllowedPage = newMax;
+
+        if (current > maxAllowedPage){
+            scrollToPage(maxAllowedPage);
+            status.textContent = `Vul eerst de letter in bij poster ${maxAllowedPage + 1}.`;
+        }
+    }, { passive: true });
+
+    // “Soft gate”: blokkeer wheel/touchpad naar beneden wanneer je al op max zit
+    pager.addEventListener("wheel", (e) => {
+        const current = getCurrentPageIndex();
+        const newMax = computeMaxAllowedPage();
+        maxAllowedPage = newMax;
+
+        const scrollingDown = e.deltaY > 0;
+        if (scrollingDown && current >= maxAllowedPage && maxAllowedPage < 5){
+            // je zit op de eerste niet-ingevulde poster: niet verder
+            e.preventDefault();
+            status.textContent = `Vul eerst de letter in bij poster ${maxAllowedPage + 1}.`;
+        }
+    }, { passive: false });
+
+    // Touch: vergelijk touchstart->touchmove richting
+    let touchStartY = null;
+    pager.addEventListener("touchstart", (e) => {
+        touchStartY = e.touches?.[0]?.clientY ?? null;
+    }, { passive: true });
+
+    pager.addEventListener("touchmove", (e) => {
+        if (touchStartY == null) return;
+        const y = e.touches?.[0]?.clientY ?? touchStartY;
+        const scrollingDown = y < touchStartY; // vinger omhoog = scroll naar beneden
+
+        const current = getCurrentPageIndex();
+        const newMax = computeMaxAllowedPage();
+        maxAllowedPage = newMax;
+
+        if (scrollingDown && current >= maxAllowedPage && maxAllowedPage < 5){
+            e.preventDefault();
+            status.textContent = `Vul eerst de letter in bij poster ${maxAllowedPage + 1}.`;
+        }
+    }, { passive: false });
+
+
+    for (let i=0;i<5;i++){
+        const input = document.getElementById(`ans-${i}`);
+        const ok = document.getElementById(`ok-${i}`);
+
+        input.addEventListener("input", () => {
+            const v = (input.value || "").toUpperCase().replace(/[^A-Z]/g,"");
+            input.value = v.slice(0,1);
+            found[i] = input.value;
+
+            // update gate zodra een letter ingevuld is
+            maxAllowedPage = computeMaxAllowedPage();
+            if (maxAllowedPage === 5){
+                status.textContent = "Alle letters gevonden — scroll door naar het invulscherm.";
+            } else {
+                status.textContent = `Goed! Je mag door naar poster ${maxAllowedPage + 1}.`;
+            }
+
+
+            // show "saved" badge when non-empty
+            if (found[i]){
+                ok.classList.add("show");
+                // Autofocus next poster input if possible
+                const next = document.getElementById(`ans-${i+1}`);
+                if (next) setTimeout(()=> next.focus(), 120);
+            } else {
+                ok.classList.remove("show");
+            }
+
+            // Also prefill final inputs for convenience (optional but nice)
+            const wi = document.getElementById(`w-${i}`);
+            if (wi) wi.value = found[i] || "";
+        });
+    }
+
+    // ===== Flip only on intentional scroll down (no half-turned cards) =====
+    const cards = [...document.querySelectorAll(".flipCard")];
+    const flipped = Array(5).fill(false); // enkel poster 0..4
+
+    function setFlipped(idx, on){
+        const card = document.getElementById(`card-${idx}`);
+        if (!card) return;
+        card.classList.toggle("flipped", !!on);
+        flipped[idx] = !!on;
+    }
+
+    // wanneer je naar een nieuwe page snapt: toon front (tenzij al geflipt)
+    let __snapTimer = null;
+    pager.addEventListener("scroll", () => {
+        clearTimeout(__snapTimer);
+        __snapTimer = setTimeout(() => {
+            const current = getCurrentPageIndex();
+            if (current >= 0 && current <= 4){
+                if (!flipped[current]) setFlipped(current, false); // force front
+                status.textContent = flipped[current]
+                  ? `Poster ${current+1} — achterkant: vul de letter in`
+                  : `Poster ${current+1} — scroll naar beneden om om te draaien`;
+            } else if (current === 5){
+                status.textContent = "Vul het woord in.";
+            }
+        }, 80);
+    }, { passive: true });
+
+    // Intercept wheel: eerste scroll down = flip, geen page-change
+    pager.addEventListener("wheel", (e) => {
+        const current = getCurrentPageIndex();
+        const down = e.deltaY > 0;
+        const up = e.deltaY < 0;
+
+        if (current >= 0 && current <= 4){
+            // als nog niet geflipt: eerste scroll down flip i.p.v. door te scrollen
+            if (down && !flipped[current]){
+                e.preventDefault();
+                setFlipped(current, true);
+                status.textContent = `Poster ${current+1} — achterkant: vul de letter in`;
+                // focus op input
+                setTimeout(()=> document.getElementById(`ans-${current}`)?.focus(), 120);
+                return;
+            }
+
+            // (optioneel) scroll up = terug naar voorkant
+            if (up && flipped[current]){
+                e.preventDefault();
+                setFlipped(current, false);
+                status.textContent = `Poster ${current+1} — voorkant`;
+                return;
+            }
+        }
+    }, { passive: false });
+
+    // Touch: zelfde logica (swipe omhoog = scroll down)
+    pager.addEventListener("touchstart", (e) => {
+        touchStartY = e.touches?.[0]?.clientY ?? null;
+    }, { passive: true });
+
+    pager.addEventListener("touchmove", (e) => {
+        if (touchStartY == null) return;
+        const y = e.touches?.[0]?.clientY ?? touchStartY;
+        const down = y < touchStartY; // vinger omhoog => scroll naar beneden
+        const up = y > touchStartY;
+
+        const current = getCurrentPageIndex();
+        if (current >= 0 && current <= 4){
+            if (down && !flipped[current]){
+                e.preventDefault();
+                setFlipped(current, true);
+                status.textContent = `Poster ${current+1} — achterkant: vul de letter in`;
+                setTimeout(()=> document.getElementById(`ans-${current}`)?.focus(), 120);
+                return;
+            }
+            if (up && flipped[current]){
+                e.preventDefault();
+                setFlipped(current, false);
+                status.textContent = `Poster ${current+1} — voorkant`;
+                return;
+            }
+        }
+    }, { passive: false });
+
+
+    // ===== Final word check =====
+    const toast = document.getElementById("toast");
+    const checkBtn = document.getElementById("checkBtn");
+    const unlock = document.getElementById("unlock");
+
+    function getFinalWord(){
+        let w = "";
+        for (let i=0;i<5;i++){
+            const el = document.getElementById(`w-${i}`);
+            const v = (el?.value || "").toUpperCase().replace(/[^A-Z]/g,"");
+            if (el) el.value = v.slice(0,1);
+            w += (el?.value || "");
+        }
+        return w;
+    }
+
+    checkBtn.addEventListener("click", () => {
+        const w = getFinalWord();
+        if (w.length < 5){
+            showToast("Vul 5 letters in.", true);
+            return;
+        }
+        if (w === FINAL_WORD){
+            showToast("Correct.", false);
+            triggerUnlock();
+        } else {
+            showToast("Niet juist. Probeer opnieuw.", true);
+        }
+    });
+
+    // also handle Enter key in final inputs
+    for (let i=0;i<5;i++){
+        const el = document.getElementById(`w-${i}`);
+        el.addEventListener("keydown", (ev) => {
+            if (ev.key === "Enter") checkBtn.click();
+            if (ev.key === "ArrowRight"){
+                document.getElementById(`w-${Math.min(4,i+1)}`)?.focus();
+            }
+            if (ev.key === "ArrowLeft"){
+                document.getElementById(`w-${Math.max(0,i-1)}`)?.focus();
+            }
+        });
+        el.addEventListener("input", ()=>{
+            const v = (el.value||"").toUpperCase().replace(/[^A-Z]/g,"");
+            el.value = v.slice(0,1);
+            if (el.value && i < 4) document.getElementById(`w-${i+1}`)?.focus();
+        });
+    }
+
+    function showToast(msg, bad){
+        toast.textContent = msg;
+        toast.classList.toggle("bad", !!bad);
+        toast.classList.add("show");
+        clearTimeout(window.__toastTimer);
+        window.__toastTimer = setTimeout(()=> toast.classList.remove("show"), 2200);
+    }
+
+    function triggerUnlock(){
+        // dramatic pause
+        setTimeout(() => {
+            unlock.classList.add("show");
+        }, 450);
+    }
+
+    function escapeHTML(str){
+        return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+</script>
+</body>
+</html>
