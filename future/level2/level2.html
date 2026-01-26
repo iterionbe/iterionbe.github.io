@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="nl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PROTOCOL 50: Level 2</title>
+    <style>
+        :root{
+            --green: rgba(0,255,102,.98);
+            --bg: #000;
+            --panelBg: rgba(0,28,12,.78);
+            --panelStroke: rgba(0,255,102,.26);
+            --panelStroke2: rgba(0,255,102,.10);
+        }
+
+        /* Topaz (plaats een Topaz .woff2 naast deze HTML en pas naam aan) */
+        @font-face{
+            font-family: "TopazPlus";
+            src: url("./amiga-topaz.otf.woff2") format("woff2");
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        html, body{
+            height: 100%;
+            margin: 0;
+            background: var(--bg);
+            overflow: hidden;
+        }
+        body{
+            font-family: "TopazPlus", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+            color: var(--green);
+        }
+
+        /* ===== Center panel ===== */
+        .frame{
+            position: fixed;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            padding: 22px;
+            background: #000;
+            isolation: isolate;
+        }
+
+        .panel{
+            width: min(1080px, 92vw);
+            height: min(640px, 84vh);
+            border-radius: 22px;
+            border: 1px solid var(--panelStroke);
+            background: linear-gradient(180deg, rgba(0,30,14,.86), var(--panelBg));
+            box-shadow:
+                    0 18px 70px rgba(0,0,0,.55),
+                    0 0 0 1px var(--panelStroke2) inset,
+                    0 0 38px rgba(0,255,102,.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* CRT scanlines inside panel */
+        .panel::before{
+            content:"";
+            position:absolute;
+            inset:0;
+            background:
+                    repeating-linear-gradient(
+                            to bottom,
+                            rgba(255,255,255,0.028) 0px,
+                            rgba(255,255,255,0.028) 1px,
+                            rgba(0,0,0,0) 3px,
+                            rgba(0,0,0,0) 6px
+                    );
+            opacity: .22;
+            mix-blend-mode: overlay;
+            pointer-events:none;
+            z-index: 4;
+            animation: scanDrift 5.2s linear infinite;
+        }
+        @keyframes scanDrift{
+            0%{ transform: translateY(0); }
+            100%{ transform: translateY(6px); }
+        }
+
+        /* subtle phosphor glow */
+        .panel::after{
+            content:"";
+            position:absolute;
+            inset:-20%;
+            background:
+                    radial-gradient(900px 500px at 50% 40%, rgba(0,255,102,.10), transparent 58%),
+                    radial-gradient(700px 420px at 40% 60%, rgba(0,255,102,.06), transparent 60%);
+            opacity: .55;
+            pointer-events:none;
+            z-index: 1;
+            transform: perspective(900px) rotateX(.8deg) scale(1.02);
+        }
+
+        .panelGrid{
+            position: relative;
+            z-index: 3;
+            height: 100%;
+            display: grid;
+            grid-template-columns: 0.88fr 1.12fr;
+            gap: 18px;
+            padding: 18px;
+            align-items: center;
+        }
+
+        .left{
+            height: 100%;
+            display:flex;
+            align-items:center;
+            justify-content:flex-start;
+            padding-left: 8px;
+        }
+
+        .portrait{
+            width: min(360px, 30vw);
+            max-width: 420px;
+            height: auto;
+            border-radius: 14px;
+            border: 1px solid rgba(0,255,102,.14);
+            box-shadow:
+                    0 14px 40px rgba(0,0,0,.45),
+                    0 0 22px rgba(0,255,102,.08);
+            opacity: .96;
+            pointer-events:none;
+        }
+
+        .right{
+            height: 100%;
+            display:grid;
+            place-items: center;
+            padding: 10px 10px 10px 0;
+        }
+
+        .content{
+            text-align:center;
+            letter-spacing: .10em;
+            text-transform: uppercase;
+            -webkit-font-smoothing: none;
+            text-rendering: optimizeSpeed;
+            user-select: none;
+            color: var(--green);
+            text-shadow: 0 0 18px rgba(0,255,102,.18);
+            position: relative;
+        }
+        .big{
+            font-size: clamp(28px, 4.6vw, 84px);
+            line-height: 1.05;
+        }
+
+        /* subtle power flicker */
+        .flicker{
+            animation: flicker 2.8s steps(70) infinite;
+        }
+        @keyframes flicker{
+            0%{ opacity: 1; }
+            8%{ opacity: .94; }
+            16%{ opacity: 1; }
+            33%{ opacity: .96; }
+            49%{ opacity: 1; }
+            64%{ opacity: .93; }
+            79%{ opacity: 1; }
+            100%{ opacity: .98; }
+        }
+
+        /* ===== Typewriter SAVE THE DATE (JS-controlled) ===== */
+        #save{
+            display:none;
+            opacity: 1;
+        }
+        #save.show{ display:block; }
+
+        #save .type{
+            display:inline-block;
+            white-space:nowrap;
+            border-right: 3px solid rgba(0,255,102,.85);
+            padding-right: .18ch;
+            animation: caretBlink .6s steps(2) infinite;
+            filter: drop-shadow(0 0 10px rgba(0,255,102,.14));
+        }
+        @keyframes caretBlink{
+            0%{ border-right-color: rgba(0,255,102,.85); }
+            50%{ border-right-color: rgba(0,255,102,0); }
+            100%{ border-right-color: rgba(0,255,102,.85); }
+        }
+
+        #save.fadeOut{
+            animation: fadeOut 520ms ease forwards;
+        }
+        @keyframes fadeOut{
+            to{ opacity: 0; }
+        }
+
+        /* ===== Date layer ===== */
+        #dateLayer{
+            display:none;
+        }
+        #dateLayer.show{
+            display:block;
+        }
+
+        .burn{
+            position: relative;
+            filter: contrast(1.10) saturate(1.04);
+            text-shadow: 0 0 22px rgba(0,255,102,.22);
+            animation: burnGlow 900ms ease-out both;
+        }
+        @keyframes burnGlow{
+            0%{ text-shadow: 0 0 12px rgba(0,255,102,.16); transform: translateY(-2px); }
+            12%{ text-shadow: 0 0 68px rgba(0,255,102,.58); transform: translateY(0px); }
+            100%{ text-shadow: 0 0 24px rgba(0,255,102,.22); }
+        }
+
+        .burn::after{
+            content: attr(data-text);
+            position:absolute;
+            left:0; top:0;
+            width:100%;
+            text-align:center;
+            color: rgba(0,255,102,.58);
+            text-shadow: 0 0 30px rgba(0,255,102,.48);
+            filter: blur(0.9px);
+            opacity: 0;
+            transform: translateY(0);
+            animation: afterImg 5s linear both;
+            pointer-events:none;
+        }
+        @keyframes afterImg{
+            0%{ opacity: 0; transform: translateY(0); }
+            6%{ opacity: .55; transform: translateY(0); }
+            55%{ opacity: .18; transform: translateY(1px); }
+            100%{ opacity: 0; transform: translateY(2px); }
+        }
+
+        /* Flash overlay inside panel */
+        .flash{
+            position:absolute;
+            inset:0;
+            background: radial-gradient(circle at 50% 50%, rgba(0,255,102,.16), rgba(0,0,0,0) 58%);
+            opacity: 0;
+            pointer-events:none;
+            z-index: 5;
+            mix-blend-mode: screen;
+        }
+        .flash.pulse{
+            animation: flashPulse 170ms ease-out;
+        }
+        @keyframes flashPulse{
+            0%{ opacity: 0; }
+            30%{ opacity: 1; }
+            100%{ opacity: 0; }
+        }
+
+        .jitter{
+            animation: jitter 900ms steps(10) infinite;
+        }
+        @keyframes jitter{
+            0%{ transform: translate(0,0); }
+            20%{ transform: translate(-1px,0); }
+            40%{ transform: translate(1px,0); }
+            60%{ transform: translate(0,1px); }
+            80%{ transform: translate(0,-1px); }
+            100%{ transform: translate(0,0); }
+        }
+
+        /* ===== Start overlay/button ===== */
+        .startOverlay{
+            position:absolute;
+            inset:0;
+            z-index: 10;
+            display:grid;
+            place-items:center;
+            background: rgba(0,0,0,.55);
+            backdrop-filter: blur(6px);
+        }
+
+        .startCard{
+            width:min(560px, 88vw);
+            border-radius: 18px;
+            border: 1px solid rgba(0,255,102,.26);
+            background: rgba(0,0,0,.35);
+            padding: 18px 16px;
+            text-align:center;
+            box-shadow: 0 14px 50px rgba(0,0,0,.55);
+        }
+
+        .startCard h1{
+            margin:0 0 8px;
+            font-size: 14px;
+            letter-spacing:.14em;
+            text-transform: uppercase;
+            font-weight: 900;
+            opacity:.95;
+        }
+        .startCard p{
+            margin:0 0 14px;
+            font-size: 12px;
+            opacity:.78;
+            letter-spacing:.06em;
+            text-transform: uppercase;
+            line-height:1.35;
+        }
+
+        .btn{
+            cursor:pointer;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(0,255,102,.65);
+            background: rgba(0,255,102,.12);
+            color: var(--green);
+            font-weight: 900;
+            letter-spacing:.12em;
+            text-transform: uppercase;
+            font-family: inherit;
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            gap:10px;
+            user-select:none;
+        }
+        .btn:hover{
+            border-color: rgba(0,255,102,.92);
+            background: rgba(0,255,102,.16);
+        }
+
+        /* responsive */
+        @media (max-width: 820px){
+            .panel{ height: min(720px, 90vh); }
+            .panelGrid{ grid-template-columns: 1fr; }
+            .left{ justify-content:center; padding-left:0; }
+            .portrait{ width: min(420px, 78vw); }
+            .right{ padding: 0 10px 10px; }
+        }
+
+        @media (prefers-reduced-motion: reduce){
+            .panel::before{ animation: none !important; }
+            .flicker, .jitter, #save .type{ animation: none !important; }
+            .burn, .burn::after, .flash.pulse{ animation: none !important; }
+        }
+
+        /* ===== Johan 50 badge (bottom-right in panel) ===== */
+        .badge{
+            position: absolute;
+            right: 14px;
+            bottom: 14px;
+
+            width: 84px;          /* pas aan indien nodig */
+            height: auto;
+
+            opacity: .92;
+            z-index: 6;           /* boven scanlines, onder flash */
+            pointer-events: none;
+
+            /* subtiele CRT/burn look */
+            filter:
+                    drop-shadow(0 0 6px rgba(255,0,0,.35))
+                    drop-shadow(0 0 14px rgba(255,0,0,.18));
+
+            image-rendering: crisp-edges;
+        }
+
+        /* iets kleiner op mobiel */
+        @media (max-width: 820px){
+            .badge{
+                width: 64px;
+                right: 10px;
+                bottom: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="frame">
+    <div class="panel">
+        <div class="flash" id="flash"></div>
+
+        <!-- Start overlay: lets audio start on user gesture -->
+        <div class="startOverlay" id="startOverlay">
+            <button class="btn" id="startBtn">Start</button>
+        </div>
+
+        <div class="panelGrid">
+            <div class="left">
+                <!-- Zet jouw afbeelding naast deze HTML en pas de naam aan -->
+                <img class="portrait" src="./level2.png" alt="">
+            </div>
+
+            <div class="right">
+                <div class="content big flicker">
+                    <div id="save"><span class="type" id="saveType"></span></div>
+                    <div id="dateLayer">
+                        <div class="burn jitter" id="dateText" data-text=""></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Johan 50 badge -->
+        <img
+                src="./badge.png"
+                alt="Johan 50"
+                class="badge"
+        />
+    </div>
+</div>
+
+<script>
+    // --- CONFIG ---
+    const SAVE_TEXT = "SAVE THE DATE";
+    // Romeinse cijfers voor 30/1/2026: XXX / I / MMXXVI
+    const DATE_PARTS = ["XXX", "I", "MMXXVI"];
+
+    // Timing (ms)
+    const TYPE_INTERVAL = 85;   // letter-per-letter
+    const SAVE_HOLD     = 520;  // kort blijven staan na typen
+    const SAVE_FADE     = 520;  // fade to black
+    const BLACK_GAP     = 240;  // echt zwart moment
+    const PART_HOLD     = 5000; // elk deel ~5s
+
+    // --- WebAudio (start via button) ---
+    let audioCtx = null;
+
+    function initAudio(){
+        if (audioCtx) return;
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    function beep(freq=880, dur=0.03, gain=0.02){
+        if (!audioCtx) return;
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = "square";
+        o.frequency.value = freq;
+        g.gain.value = gain;
+        o.connect(g);
+        g.connect(audioCtx.destination);
+        o.start();
+        o.stop(audioCtx.currentTime + dur);
+    }
+
+    const saveEl    = document.getElementById("save");
+    const saveType  = document.getElementById("saveType");
+    const dateLayer = document.getElementById("dateLayer");
+    const dateText  = document.getElementById("dateText");
+    const flash     = document.getElementById("flash");
+
+    const startOverlay = document.getElementById("startOverlay");
+    const startBtn = document.getElementById("startBtn");
+
+    function wait(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+    function doFlash(){
+        flash.classList.remove("pulse");
+        void flash.offsetWidth;
+        flash.classList.add("pulse");
+    }
+
+    async function typeSave(){
+        dateLayer.style.display = "none";
+        saveEl.classList.remove("fadeOut");
+        saveEl.classList.add("show");
+        saveEl.style.opacity = "1";
+        saveType.textContent = "";
+
+        for (let i = 0; i < SAVE_TEXT.length; i++){
+            saveType.textContent += SAVE_TEXT[i];
+            if (SAVE_TEXT[i] !== " ") beep(820 + (i % 7) * 35, 0.02, 0.018);
+            await wait(TYPE_INTERVAL);
+        }
+
+        await wait(SAVE_HOLD);
+
+        saveEl.classList.add("fadeOut");
+        await wait(SAVE_FADE);
+
+        // ensure it's really gone
+        saveEl.classList.remove("show");
+        saveEl.classList.remove("fadeOut");
+        saveType.textContent = "";
+        saveEl.style.opacity = "0";
+    }
+
+    async function showPart(text){
+        dateLayer.style.display = "block";
+        dateLayer.classList.add("show");
+
+        dateText.textContent = text;
+        dateText.setAttribute("data-text", text);
+
+        // restart animations
+        dateText.classList.remove("burn","jitter");
+        void dateText.offsetWidth;
+        dateText.classList.add("burn","jitter");
+
+        doFlash();
+        beep(660, 0.05, 0.02);
+
+        await wait(PART_HOLD);
+
+        dateLayer.classList.remove("show");
+        dateLayer.style.display = "none";
+        dateText.textContent = "";
+        dateText.setAttribute("data-text", "");
+    }
+
+    let running = false;
+    async function loopForever(){
+        if (running) return;
+        running = true;
+        while(true){
+            await typeSave();
+            await wait(BLACK_GAP);
+            for (const part of DATE_PARTS){
+                await showPart(part);
+            }
+        }
+    }
+
+    startBtn.addEventListener("click", async () => {
+        // audio must start on user gesture
+        initAudio();
+        if (audioCtx.state === "suspended") await audioCtx.resume();
+
+        // small confirm beep
+        beep(920, 0.06, 0.025);
+
+        // hide overlay and start loop
+        startOverlay.style.display = "none";
+        loopForever();
+    });
+</script>
+</body>
+</html>
