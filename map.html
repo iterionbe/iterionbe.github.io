@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Gathering</title>
+    <title>Protocol 50</title>
 
     <!-- IM Fell English -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -195,6 +195,102 @@
             .poemWrap{ height: auto; }
             .poem{ height: auto; }
         }
+
+        .candleLayer{
+            position: relative;
+            width: fit-content;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* zorg dat de img echt een laag krijgt */
+        .candleLayer img{
+            display: block;
+            height: 100%;
+            width: auto;
+            max-width: 100%;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* glow bovenop de img */
+        .candleLayer::after{
+            content:"";
+            position:absolute;
+            inset:0;
+            z-index: 2;
+            pointer-events:none;
+
+            background:
+                    radial-gradient(60% 80% at 35% 35%, rgba(255,190,120,.28), transparent 60%),
+                    radial-gradient(45% 65% at 70% 55%, rgba(255,150,90,.18), transparent 62%),
+                    radial-gradient(70% 90% at 50% 85%, rgba(255,210,140,.12), transparent 70%);
+
+            mix-blend-mode: screen;
+            opacity: 1.0;
+            animation: candleFlicker 2.9s ease-in-out infinite;
+        }
+
+        /* heel lichte schaduw-fluctuatie */
+        .candleLayer::before{
+            content:"";
+            position:absolute;
+            inset:0;
+            z-index: 2;
+            pointer-events:none;
+
+            background: radial-gradient(90% 120% at 50% 60%, rgba(0,0,0,.22), transparent 55%);
+            mix-blend-mode: multiply;
+            opacity: .30;
+            animation: candleDim 3.7s ease-in-out infinite;
+        }
+
+        @keyframes candleFlicker{
+            0%   { transform: translate(0,0) scale(1);       opacity: .78; }
+            18%  { transform: translate(-1.0%, 0.6%) scale(1.02); opacity: .92; }
+            33%  { transform: translate(0.8%, -0.4%) scale(1.01); opacity: .82; }
+            52%  { transform: translate(-0.6%, -0.8%) scale(1.03); opacity: .98; }
+            70%  { transform: translate(1.0%, 0.2%) scale(1.01);  opacity: .86; }
+            100% { transform: translate(0,0) scale(1);       opacity: .80; }
+        }
+
+        @keyframes candleDim{
+            0%   { opacity: .24; }
+            25%  { opacity: .34; }
+            50%  { opacity: .20; }
+            75%  { opacity: .36; }
+            100% { opacity: .24; }
+        }
+        .cornerLogo{
+            position: fixed;
+            right: 18px;
+            bottom: 18px;
+            width: 96px;          /* pas aan indien nodig */
+            height: auto;
+
+            opacity: .92;
+            z-index: 9999;        /* altijd bovenop */
+            pointer-events: none;
+
+            /* subtiele glow zodat hij past bij je sfeer */
+            filter:
+                    drop-shadow(0 0 6px rgba(0,255,120,.25))
+                    drop-shadow(0 0 16px rgba(0,255,120,.18));
+
+            image-rendering: crisp-edges;
+        }
+
+        /* iets kleiner op mobiel */
+        @media (max-width: 900px){
+            .cornerLogo{
+                width: 64px;
+                right: 12px;
+                bottom: 12px;
+            }
+        }
+
     </style>
 </head>
 
@@ -211,7 +307,9 @@
 <div class="overlay" id="overlay">
     <div class="plate">
         <div class="imgWrap">
-            <img src="image.png" id="mainImg" alt="">
+            <div class="candleLayer">
+                <img src="image.png" id="mainImg" alt="">
+            </div>
         </div>
 
         <div class="poemWrap">
@@ -223,7 +321,7 @@
 
                     <p data-raw="Geen hoorn werd daar ten strijde geblazen,&#10;geen zwaard geheven, geen eed gezworen.&#10;Maar brood werd gedeeld en verhalen geweven,&#10;tot zelfs de tijd zich liet bekoren."></p>
 
-                    <p data-raw="En op die plaats, waar wegen kruisen,&#10;werd het lot voor even mild:&#10;geen oorlog, geen schaduw, geen groot gevaar —&#10;slechts warmte, wijn, en vriendschap stil."></p>
+                    <p data-raw="En op die plaats, waar wegen kruisen,&#10;werd het lot voor even mild:&#10;Johan, geteld bij hen die kwamen,&#10;slechts warmte, wijn, en vriendschap stil."></p>
                 </div>
             </div>
         </div>
@@ -376,5 +474,7 @@
     // initial: keep paragraphs hidden/empty
     lines.forEach(p => { p.style.opacity = "0"; p.innerHTML = ""; });
 </script>
+
+<img src="badge.png" alt="Johan 50" class="cornerLogo">
 </body>
 </html>
