@@ -13,8 +13,7 @@
     <style>
         :root{
             --bg: #000;
-            --panel: rgba(0,28,12,.78);
-            --stroke: rgba(0,255,102,.22);
+            --panel: rgba(0,28,12,.70);
             --text: rgba(160,220,170,.95);
             --glow: rgba(120,180,120,.35);
         }
@@ -41,10 +40,11 @@
         .startCard{
             padding:26px 28px;
             border-radius:20px;
-            border:1px solid var(--stroke);
+            border:1px solid rgba(0,255,102,.22);
             background:linear-gradient(180deg, rgba(0,30,14,.85), var(--panel));
             box-shadow:0 20px 70px rgba(0,0,0,.6);
             text-align:center;
+            width: 500px;
         }
 
         .startCard h1{
@@ -74,10 +74,7 @@
             font-style:italic;
             text-shadow:0 0 10px var(--glow);
         }
-
-        .btn:hover{
-            background:rgba(0,255,102,.20);
-        }
+        .btn:hover{ background:rgba(0,255,102,.20); }
 
         /* ---------- MAIN OVERLAY ---------- */
         .overlay{
@@ -90,123 +87,144 @@
             pointer-events:none;
             transition:opacity 1600ms ease;
         }
-
         .overlay.show{
             opacity:1;
             pointer-events:auto;
         }
 
-        .frame{
-            width:min(1100px,92vw);
-            height:min(700px,92vh);
+        /* No frames around image/text: only a soft background plate */
+        .plate{
+            width:min(1400px, 94vw);
+            height:min(740px, 92vh);
             border-radius:22px;
-            border:1px solid var(--stroke);
-            background:rgba(0,0,0,.45);
+            background:
+                    radial-gradient(900px 520px at 30% 25%, rgba(140,180,140,.10), transparent 58%),
+                    radial-gradient(720px 440px at 70% 75%, rgba(110,160,110,.08), transparent 62%),
+                    linear-gradient(180deg, rgba(0,30,14,.60), rgba(0,0,0,.35));
             box-shadow:
-                    0 18px 70px rgba(0,0,0,.6),
-                    0 0 40px rgba(0,255,102,.08);
-            padding:18px;
+                    0 22px 80px rgba(0,0,0,.65),
+                    0 0 46px rgba(0,255,102,.06);
+            padding: 22px;
             display:grid;
-            grid-template-columns:1fr 1.15fr;
-            gap:18px;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 28px;
+            align-items: center;
         }
 
         .imgWrap{
-            height:100%;
             display:flex;
             align-items:center;
             justify-content:center;
-            border-radius:16px;
-            border:1px solid rgba(0,255,102,.14);
-            background:rgba(0,0,0,.25);
-            overflow:hidden;
+            height: 100%;
         }
 
+        /* Make image big: occupy the full plate height */
         .imgWrap img{
-            height:100%;
-            width:auto;
-            max-width:100%;
-            object-fit:contain;
-            filter:drop-shadow(0 0 22px rgba(0,255,102,.10));
+            height: 100%;
+            width: auto;
+            max-width: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 0 24px rgba(0,255,102,.10));
         }
 
-        .poem{
-            height:100%;
-            border-radius:16px;
-            border:1px solid rgba(0,255,102,.14);
-            background:rgba(0,0,0,.20);
-            padding:18px;
+        .poemWrap{
+            height: 100%;
             display:flex;
             align-items:center;
             justify-content:center;
             overflow:hidden;
+        }
+
+        /* parchment-ish texture behind poem but NO border/frame */
+        .poem{
+            width: 100%;
+            height: 100%;
+            padding: 6px 4px;
+            background:
+                    radial-gradient(900px 520px at 35% 25%, rgba(160,210,170,.09), transparent 55%),
+                    linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.05)),
+                    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='.20'/%3E%3C/svg%3E");
+            background-size: auto, auto, 280px 280px;
+            background-blend-mode: screen, normal, overlay;
+            border: none;          /* explicitly none */
+            border-radius: 0;      /* no rounded frame look */
         }
 
         .poemInner{
             width:100%;
             font-style:italic;
-            line-height:1.28;
+            line-height:1.30;
             letter-spacing:.02em;
             color:var(--text);
             text-shadow:0 0 12px var(--glow);
-            font-size:22px; /* JS past dit aan */
+            font-size: 24px;   /* JS will refine smaller if needed */
+            white-space: normal;
         }
 
         .poemInner p{
-            margin:0 0 .9em;
+            margin:0 0 .85em;
+            opacity: 0;              /* typewriter start hidden */
         }
         .poemInner p:last-child{ margin-bottom:0; }
 
-        @media (max-width:900px){
-            .frame{
-                grid-template-columns:1fr;
-                height:min(860px,92vh);
+        .caret{
+            display:inline-block;
+            width: 10px;
+            margin-left: 2px;
+            border-bottom: 2px solid rgba(160,220,170,.85);
+            transform: translateY(-2px);
+            animation: blink .7s steps(2) infinite;
+            opacity: .9;
+        }
+        @keyframes blink{
+            0%{ opacity: 1; }
+            50%{ opacity: 0; }
+            100%{ opacity: 1; }
+        }
+
+        @media (max-width: 980px){
+            .plate{
+                grid-template-columns: 1fr;
+                height: min(900px, 92vh);
+                gap: 18px;
             }
-            .imgWrap img{ height:auto; max-height:44vh; }
-            .poem{ height:auto; }
+            .imgWrap img{
+                height: auto;
+                max-height: 46vh;
+            }
+            .poemWrap{ height: auto; }
+            .poem{ height: auto; }
         }
     </style>
 </head>
 
 <body>
-
 <!-- START -->
 <div class="start" id="startScreen">
     <div class="startCard">
-        <h1>Een oud lied</h1>
-        <p>Klik om het verhaal te laten beginnen.</p>
+        <h1>~ Protocol 50 ~</h1>
         <button class="btn" id="startBtn">Start</button>
     </div>
 </div>
 
 <!-- MAIN -->
 <div class="overlay" id="overlay">
-    <div class="frame">
+    <div class="plate">
         <div class="imgWrap">
             <img src="image.png" id="mainImg" alt="">
         </div>
 
-        <div class="poem">
-            <div class="poemInner" id="poemInner">
-                <p>Uit vier windstreken, stil en traag,<br>
-                    verlieten zij hun haard bij nacht.<br>
-                    Waar lamplicht gloeit en rook opstijgt,<br>
-                    werd ieder pad met zorg bedacht.</p>
+        <div class="poemWrap">
+            <div class="poem">
+                <div class="poemInner" id="poemInner" aria-label="Gedicht">
+                    <p data-raw="Uit vier windstreken, stil en traag,&#10;verlieten zij hun haard bij nacht.&#10;Waar lamplicht gloeit en rook opstijgt,&#10;werd ieder pad met zorg bedacht."></p>
 
-                <p>Van heuvelhuis en stenen steeg,<br>
-                    van bosrand diep en waterkant,<br>
-                    vier gezelschappen, oud en nieuw,<br>
-                    met lach en lied en lege hand.</p>
+                    <p data-raw="Van heuvelhuis en stenen steeg,&#10;van bosrand diep en waterkant,&#10;vier gezelschappen, oud en nieuw,&#10;met lach en lied en lege hand."></p>
 
-                <p>Geen hoorn werd daar ten strijde geblazen,<br>
-                    geen zwaard geheven, geen eed gezworen.<br>
-                    Maar brood werd gedeeld en verhalen geweven,<br>
-                    tot zelfs de tijd zich liet bekoren.</p>
+                    <p data-raw="Geen hoorn werd daar ten strijde geblazen,&#10;geen zwaard geheven, geen eed gezworen.&#10;Maar brood werd gedeeld en verhalen geweven,&#10;tot zelfs de tijd zich liet bekoren."></p>
 
-                <p>En op die plaats, waar wegen kruisen,<br>
-                    werd het lot voor even mild:<br>
-                    geen oorlog, geen schaduw, geen groot gevaar —<br>
-                    slechts warmte, wijn, en vriendschap stil.</p>
+                    <p data-raw="En op die plaats, waar wegen kruisen,&#10;werd het lot voor even mild:&#10;geen oorlog, geen schaduw, geen groot gevaar —&#10;slechts warmte, wijn, en vriendschap stil."></p>
+                </div>
             </div>
         </div>
     </div>
@@ -221,42 +239,142 @@
     const audio = document.getElementById("audio");
 
     const poemInner = document.getElementById("poemInner");
-    const poemBox = poemInner.parentElement;
+    const poemBox = poemInner.closest(".poem");
     const img = document.getElementById("mainImg");
+    const lines = [...poemInner.querySelectorAll("p")];
 
+    function escapeHTML(s){
+        return String(s)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+    // Fit poem font-size so the full poem fits the available height.
+    // Also helps ensure text + image feel visually equal height when complete.
     function fitPoem(){
-        let max = 26;
-        let min = 12;
-        poemInner.style.fontSize = max + "px";
+        const max = 36;  // keep relatively small
+        const min = 12;
 
-        while (max > min && poemInner.scrollHeight > poemBox.clientHeight){
-            max--;
-            poemInner.style.fontSize = max + "px";
+        // Temporarily render full poem to measure
+        lines.forEach(p => {
+            p.style.opacity = "1";
+            p.innerHTML = escapeHTML(p.dataset.raw).replace(/\n/g, "<br>");
+        });
+
+        let size = max;
+        poemInner.style.fontSize = size + "px";
+
+        while (size > min && poemInner.scrollHeight > poemBox.clientHeight){
+            size -= 1;
+            poemInner.style.fontSize = size + "px";
         }
+
+        // Restore hidden for typewriter
+        lines.forEach(p => { p.style.opacity = "0"; p.innerHTML = ""; });
+    }
+
+    // Build a flat list of characters to hit ~45s total typing
+    function buildCharStream(){
+        const parts = lines.map(p => p.dataset.raw || "");
+        const full = parts.join("\n\n"); // pauses between stanzas
+        return full.split("");
+    }
+
+    // Map characters to delays; then scale so total is exactly 45s
+    function baseDelayForChar(ch){
+        if (ch === "\n") return 140;
+        if (ch === " ") return 18;
+        if (ch === ",") return 140;
+        if (ch === ".") return 210;
+        if (ch === "—") return 260;
+        return 26; // letters
+    }
+
+    function makeSchedule(targetMs){
+        const chars = buildCharStream();
+        const base = chars.map(baseDelayForChar);
+        const sum = base.reduce((a,b)=>a+b,0);
+        const scale = targetMs / sum;
+        const delays = base.map(d => Math.max(8, Math.round(d * scale)));
+        return { chars, delays };
+    }
+
+    // Type into the actual <p> elements, respecting stanza breaks
+    async function typePoemTotal45s(){
+        const TARGET = 45000;
+        const { chars, delays } = makeSchedule(TARGET);
+
+        // prep
+        lines.forEach(p => { p.style.opacity = "1"; p.innerHTML = ""; });
+
+        let pIdx = 0;
+        let caret = document.createElement("span");
+        caret.className = "caret";
+
+        // We interpret "\n\n" (double newline) as new stanza (next <p>).
+        // Single newline becomes <br>.
+        let prevWasNL = false;
+
+        for (let i=0; i<chars.length; i++){
+            const ch = chars[i];
+
+            if (ch === "\n"){
+                if (prevWasNL){
+                    // stanza break -> next paragraph
+                    caret.remove();
+                    pIdx = Math.min(pIdx + 1, lines.length - 1);
+                    prevWasNL = false;
+                } else {
+                    // line break
+                    lines[pIdx].insertAdjacentHTML("beforeend", "<br>");
+                    prevWasNL = true;
+                }
+            } else {
+                prevWasNL = false;
+                lines[pIdx].appendChild(document.createTextNode(ch));
+            }
+
+            // caret follows the current paragraph
+            lines[pIdx].appendChild(caret);
+
+            await sleep(delays[i]);
+        }
+
+        caret.remove();
     }
 
     startBtn.addEventListener("click", async () => {
-        try{
-            await audio.play();
-        }catch(e){
-            console.warn("Audio start geblokkeerd");
-        }
+        try{ await audio.play(); } catch(e){ /* ignore */ }
 
         startScreen.style.display = "none";
         overlay.classList.add("show");
 
+        const begin = async () => {
+            fitPoem();         // fit to height so final state matches image height better
+            await sleep(120);
+            fitPoem();         // second pass after layout settles
+            typePoemTotal45s(); // 45 seconds total typing
+        };
+
         if (!img.complete){
-            img.onload = fitPoem;
+            img.onload = begin;
         } else {
-            fitPoem();
+            begin();
         }
-        setTimeout(fitPoem, 100);
     });
 
     window.addEventListener("resize", () => {
-        if (overlay.classList.contains("show")) fitPoem();
+        if (!overlay.classList.contains("show")) return;
+        fitPoem();
     });
-</script>
 
+    // initial: keep paragraphs hidden/empty
+    lines.forEach(p => { p.style.opacity = "0"; p.innerHTML = ""; });
+</script>
 </body>
 </html>
