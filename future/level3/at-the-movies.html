@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+
+<html lang="nl">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<title>Protocol 50 - At the movies</title>
+<style>
+    :root{
+      --bg:#050607;
+      --fg:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.68);
+      --accent:#00ff66;
+      --danger:#ff4d4d;
+      --panel: rgba(10,12,14,.72);
+      --border: rgba(255,255,255,.10);
+      --shadow: 0 18px 60px rgba(0,0,0,.55);
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      background: radial-gradient(1000px 600px at 70% 30%, rgba(0,255,102,.10), transparent 55%),
+                  radial-gradient(900px 600px at 30% 70%, rgba(255,120,0,.08), transparent 60%),
+                  var(--bg);
+      color:var(--fg);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 18px;
+      overflow:hidden;
+    }
+
+    .app{
+      width:min(980px, 96vw);
+      display:grid;
+      grid-template-rows: auto 1fr auto;
+      gap:14px;
+      position:relative;
+      z-index:5;
+    }
+
+    header{
+      display:flex;
+      align-items:baseline;
+      justify-content:space-between;
+      gap:12px;
+      padding: 10px 12px;
+      border:1px solid var(--border);
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    }
+    .title{
+      font-weight:900;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color: rgba(255,255,255,.9);
+      font-size: 13px;
+    }
+    .step{
+      font-variant-numeric: tabular-nums;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .panel{
+      display:grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap:14px;
+      align-items:stretch;
+    }
+    @media (max-width: 860px){
+      .panel{ grid-template-columns: 1fr; }
+    }
+
+    .frame{
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015));
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      position:relative;
+      min-height: 52vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 10px;
+    }
+
+    /* Afbeeldingen 1024x1536 (2:3) -> schalen met behoud van verhouding, zonder croppen */
+    .frame img{
+      width: 100%;
+      height: 100%;
+      max-height: calc(100vh - 220px);
+      object-fit: contain;
+      object-position: center;
+      border-radius: 12px;
+      user-select:none;
+      -webkit-user-drag:none;
+      filter: contrast(1.02) saturate(1.02);
+    }
+
+    .card{
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.02));
+      box-shadow: var(--shadow);
+      padding: 14px 14px 12px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .prompt{
+      padding:12px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.28);
+      color: rgba(255,255,255,.90);
+      line-height:1.45;
+      min-height: 96px;
+      white-space: pre-wrap;
+    }
+
+    .inputRow{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .letter{
+      width: 68px;
+      height: 52px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(0,0,0,.38);
+      color: rgba(255,255,255,.95);
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      text-align:center;
+      outline:none;
+    }
+    .letter:focus{
+      border-color: rgba(0,255,102,.60);
+      box-shadow: 0 0 0 3px rgba(0,255,102,.14);
+    }
+
+    .btn{
+      height: 52px;
+      padding: 0 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(0,255,102,.45);
+      background: rgba(0,255,102,.14);
+      color: rgba(0,255,102,.95);
+      font-weight: 900;
+      letter-spacing: .10em;
+      text-transform: uppercase;
+      cursor:pointer;
+      user-select:none;
+    }
+    .btn:hover{ border-color: rgba(0,255,102,.85); background: rgba(0,255,102,.18); }
+    .btn:disabled{
+      opacity:.45;
+      cursor:not-allowed;
+      filter: grayscale(.35);
+    }
+
+    .feedback{
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.22);
+      padding: 10px 12px;
+      font-size: 13px;
+      color: var(--muted);
+      min-height: 40px;
+    }
+    .feedback.ok{
+      border-color: rgba(0,255,102,.35);
+      color: rgba(0,255,102,.92);
+      background: rgba(0,255,102,.06);
+    }
+    .feedback.bad{
+      border-color: rgba(255,77,77,.35);
+      color: rgba(255,77,77,.92);
+      background: rgba(255,77,77,.06);
+    }
+
+    footer{
+      border:1px solid var(--border);
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      padding: 10px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      box-shadow: 0 10px 28px rgba(0,0,0,.22);
+    }
+    .confirmed{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .confirmedLabel{
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing:.06em;
+      text-transform:uppercase;
+    }
+    .slots{
+      display:flex;
+      gap:8px;
+    }
+    .slot{
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.34);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight: 950;
+      letter-spacing: .10em;
+      color: rgba(255,255,255,.92);
+      text-transform:uppercase;
+      font-size: 16px;
+    }
+    .slot.filled{
+      border-color: rgba(0,255,102,.35);
+      color: rgba(0,255,102,.95);
+      background: rgba(0,255,102,.06);
+      box-shadow: 0 0 18px rgba(0,255,102,.10);
+    }
+
+    /* Fade transition */
+    .fade{
+      position:fixed;
+      inset:0;
+      background:#000;
+      opacity:0;
+      pointer-events:none;
+      z-index:50;
+      transition: opacity 520ms ease;
+    }
+    .fade.on{
+      opacity:1;
+      pointer-events:auto;
+    }
+
+    /* Final screen */
+    .final{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:60;
+      background: radial-gradient(1200px 700px at 50% 45%, rgba(255,120,0,.14), transparent 60%),
+                  #000;
+      padding: 22px;
+    }
+    .final.show{ display:flex; }
+
+    .finalCard{
+      width:min(860px, 94vw);
+      border-radius: 24px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.45);
+      box-shadow: 0 28px 90px rgba(0,0,0,.70);
+      padding: 26px 20px;
+      text-align:center;
+      position:relative;
+      overflow:hidden;
+    }
+    .fuego{
+      font-size: clamp(56px, 9vw, 120px);
+      font-weight: 1000;
+      letter-spacing: .18em;
+      margin: 10px 0 0;
+      color: rgba(255,230,190,.98);
+      text-shadow:
+        0 0 12px rgba(255,120,0,.55),
+        0 0 28px rgba(255,70,0,.24);
+      transform: translateY(12px);
+      opacity: 0;
+      animation: reveal 900ms ease forwards;
+    }
+    @keyframes reveal{
+      to{ opacity:1; transform: translateY(0); }
+    }
+
+    /* CSS flame */
+    .flame{
+      width: 140px;
+      height: 180px;
+      margin: 18px auto 0;
+      position:relative;
+      filter: drop-shadow(0 0 18px rgba(255,120,0,.35));
+    }
+    .flame::before,
+    .flame::after{
+      content:"";
+      position:absolute;
+      inset:auto 0 0 0;
+      margin:auto;
+      width: 120px;
+      height: 160px;
+      border-radius: 60% 60% 60% 60%;
+      background: radial-gradient(circle at 50% 35%, rgba(255,255,255,.92), rgba(255,210,120,.92) 25%, rgba(255,120,0,.92) 55%, rgba(255,50,0,.85) 75%, rgba(0,0,0,0) 76%);
+      transform-origin: 50% 90%;
+      animation: flicker 240ms infinite alternate ease-in-out;
+    }
+    .flame::after{
+      width: 76px;
+      height: 110px;
+      bottom: 18px;
+      background: radial-gradient(circle at 50% 35%, rgba(255,255,255,.90), rgba(255,235,170,.92) 30%, rgba(255,170,60,.92) 60%, rgba(255,85,0,.80) 78%, rgba(0,0,0,0) 79%);
+      animation: flicker2 180ms infinite alternate ease-in-out;
+      opacity:.95;
+    }
+    @keyframes flicker{
+      from{ transform: rotate(-2deg) scaleY(1.00) scaleX(0.98); }
+      to{ transform: rotate(2deg) scaleY(1.04) scaleX(1.02); }
+    }
+    @keyframes flicker2{
+      from{ transform: rotate(3deg) scaleY(0.98); opacity:.88; }
+      to{ transform: rotate(-3deg) scaleY(1.05); opacity:1; }
+    }
+
+    .finalSub{
+      margin: 10px 0 0;
+      color: rgba(255,255,255,.75);
+      font-size: 13px;
+      letter-spacing:.04em;
+    }
+
+    /* subtle film grain */
+    .grain{
+      pointer-events:none;
+      position:fixed; inset:0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='.18'/%3E%3C/svg%3E");
+      opacity:.10;
+      mix-blend-mode: overlay;
+      z-index:2;
+    }
+
+/* ===== EPIC FLAME ===== */
+.fuegoWrap {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at center, #200 0%, #000 70%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  z-index: 50;
+}
+
+.fuegoText {
+  font-size: clamp(64px, 14vw, 160px);
+  font-weight: 1000;
+  letter-spacing: 0.18em;
+  color: #ffd6a0;
+  text-shadow:
+    0 0 20px #ff6a00,
+    0 0 40px #ff3300,
+    0 0 80px #ff0000;
+  animation: fuegoPulse 1.6s infinite alternate;
+}
+
+@keyframes fuegoPulse {
+  from { transform: scale(1); }
+  to   { transform: scale(1.04); }
+}
+
+.flame {
+  position: absolute;
+  bottom: 12%;
+  width: 120px;
+  height: 220px;
+  background: radial-gradient(circle at 50% 80%, #fff6c0 0%, #ff9a00 35%, #ff3c00 65%, transparent 70%);
+  border-radius: 50% 50% 50% 50%;
+  filter: blur(1px);
+  animation: flameMove 0.9s infinite alternate;
+}
+
+.flame:nth-child(2) {
+  left: calc(50% - 140px);
+  height: 180px;
+  animation-duration: 1.2s;
+}
+
+.flame:nth-child(3) {
+  left: calc(50% + 20px);
+  height: 200px;
+  animation-duration: 0.8s;
+}
+
+@keyframes flameMove {
+  from { transform: translateY(0) scale(1); opacity: 0.8; }
+  to   { transform: translateY(-30px) scale(1.08); opacity: 1; }
+}
+
+
+/* ===== IGNITION SEQUENCE ===== */
+.ignite {
+  position: absolute;
+  top: 18%;
+  font-size: clamp(18px, 4vw, 32px);
+  letter-spacing: .22em;
+  color: #ffb347;
+  opacity: 0;
+  animation: igniteIn 1.6s ease-out forwards;
+}
+
+@keyframes igniteIn {
+  0%   { opacity: 0; transform: scale(0.9); }
+  60%  { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 0; transform: scale(1.15); }
+}
+
+.fuegoText {
+  animation:
+    fuegoPulse 1.6s infinite alternate,
+    fuegoIgnite 0.8s ease-out 1;
+}
+
+@keyframes fuegoIgnite {
+  0% { filter: brightness(0.2); letter-spacing: .05em; }
+  100% { filter: brightness(1); letter-spacing: .18em; }
+}
+
+
+
+/* a little shimmer on the text itself */
+.fuegoText{
+  will-change: filter, transform;
+}
+
+
+/* ===== RANDOM LETTER LOOP (2s per letter) ===== */
+.letterLoop{
+  font-size: clamp(64px, 14vw, 160px);
+  font-weight: 1000;
+  letter-spacing: 0.18em;
+  color: #ffd6a0;
+  text-shadow:
+    0 0 20px #ff6a00,
+    0 0 40px #ff3300,
+    0 0 80px #ff0000;
+  animation: fuegoPulse 1.6s infinite alternate;
+}
+
+.letterLoop .letter{
+  display:inline-block;
+  min-width: 1ch;
+  animation: letterFade 2s linear infinite;
+}
+
+@keyframes letterFade{
+  0%   { opacity: 0; transform: translateY(6px) scale(0.98); }
+  15%  { opacity: 1; transform: translateY(0) scale(1.00); }
+  85%  { opacity: 1; transform: translateY(0) scale(1.00); }
+  100% { opacity: 0; transform: translateY(-6px) scale(1.02); }
+}
+
+
+.letterLoop .letter.on{
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+    .cornerLogo{
+        position: fixed;
+        right: 18px;
+        bottom: 18px;
+        width: 96px;          /* pas aan indien nodig */
+        height: auto;
+
+        opacity: .92;
+        z-index: 9999;        /* altijd bovenop */
+        pointer-events: none;
+
+        /* subtiele glow zodat hij past bij je sfeer */
+        filter:
+                drop-shadow(0 0 6px rgba(0,255,120,.25))
+                drop-shadow(0 0 16px rgba(0,255,120,.18));
+
+        image-rendering: crisp-edges;
+    }
+
+    /* iets kleiner op mobiel */
+    @media (max-width: 900px){
+        .cornerLogo{
+            width: 64px;
+            right: 12px;
+            bottom: 12px;
+        }
+    }
+
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div class="app" id="app">
+<header>
+<div class="title">Protocol 50 - At the movies</div>
+<div class="step" id="step">1 / 5</div>
+</header>
+<section aria-label="Opdracht" class="panel">
+<div aria-label="Afbeelding" class="frame">
+<img alt="Opdracht afbeelding" id="img" src=""/>
+</div>
+<div class="card">
+<div class="prompt" id="prompt">...</div>
+<div class="inputRow">
+<input aria-label="Antwoord (1 letter)" autocapitalize="characters" autocomplete="off" class="letter" id="answer" inputmode="text" maxlength="1"/>
+<button class="btn" id="check" type="button">Controleer</button>
+</div>
+<div aria-live="polite" class="feedback" id="feedback" role="status"></div>
+</div>
+</section>
+<footer>
+<div class="confirmed">
+<div class="confirmedLabel">Bevestigd</div>
+<div aria-label="Bevestigde letters" class="slots" id="slots"></div>
+</div>
+<div class="step" id="hint">Vul 1 letter in per opdracht.</div>
+</footer>
+</div>
+<div class="fade" id="fade"></div>
+<div aria-modal="true" class="final" id="final" role="dialog">
+<div class="finalCard">
+<div aria-label="FUEGO shuffled word" class="letterLoop" id="wordOut">FUEGO</div>
+<div class="finalSub"> </div>
+</div>
+</div>
+
+<img src="badge.png" alt="Johan 50" class="cornerLogo">
+<script>
+    const CHALLENGES = [
+        { img: "poster4.png", prompt: "EERSTE letter van het TWEEDE woord uit de TITEL.", answer: "G" },
+        { img: "poster3.png", prompt: "DERDE letter van het EERSTE woord uit de TITEL.", answer: "E" },
+        { img: "poster1.png", prompt: "TWEEDE letter van het TWEEDE woord uit de TITEL.", answer: "F" },
+        { img: "poster5.png", prompt: "ACHTSTE letter uit de TITEL.", answer: "O" },
+        { img: "poster2.png", prompt: "EERSTE letter van het EERSTE woord uit de TITEL.", answer: "U" },
+    ];
+
+    const elImg = document.getElementById("img");
+    const elPrompt = document.getElementById("prompt");
+    const elAnswer = document.getElementById("answer");
+    const elCheck = document.getElementById("check");
+    const elFeedback = document.getElementById("feedback");
+    const elStep = document.getElementById("step");
+    const elSlots = document.getElementById("slots");
+    const elFade = document.getElementById("fade");
+    const elFinal = document.getElementById("final");
+
+    let idx = 0;
+    const confirmed = Array(CHALLENGES.length).fill("");
+
+    function sanitizeLetter(s){
+      return (s || "").trim().toUpperCase().slice(0,1);
+    }
+
+    function setFeedback(type, msg){
+      elFeedback.classList.remove("ok","bad");
+      if(type) elFeedback.classList.add(type);
+      elFeedback.textContent = msg || "";
+    }
+
+    function renderSlots(){
+      elSlots.innerHTML = "";
+      for(let i=0;i<confirmed.length;i++){
+        const d = document.createElement("div");
+        d.className = "slot" + (confirmed[i] ? " filled" : "");
+        d.textContent = confirmed[i] || "—";
+        elSlots.appendChild(d);
+      }
+    }
+
+    function loadChallenge(i){
+      const c = CHALLENGES[i];
+      elStep.textContent = `${i+1} / ${CHALLENGES.length}`;
+      elImg.src = c.img;
+      elPrompt.textContent = c.prompt;
+      elAnswer.value = "";
+
+      // re-enable input + button for the new challenge
+      elAnswer.disabled = false;
+      elCheck.disabled = false;
+      setFeedback("", " ");
+      renderSlots();
+      requestAnimationFrame(() => elAnswer.focus());
+    }
+
+    async function fadeToNext(){
+      elFade.classList.add("on");
+      await new Promise(r => setTimeout(r, 560));
+
+      idx += 1;
+
+      if(idx >= CHALLENGES.length){
+        elFinal.classList.add("show");
+        elFade.classList.remove("on");
+        startWordShuffle();
+        return;
+      }
+
+      loadChallenge(idx);
+      elFade.classList.remove("on");
+    }
+
+    function tryCheck(){
+      const c = CHALLENGES[idx];
+      const got = sanitizeLetter(elAnswer.value);
+      const want = sanitizeLetter(c.answer);
+
+      if(!got){
+        setFeedback("bad", "Geef 1 letter in.");
+        elAnswer.focus();
+        return;
+      }
+
+      if(got === want){
+        confirmed[idx] = got;
+        setFeedback("ok", `Correct: ${got}`);
+        renderSlots();
+
+        elCheck.disabled = true;
+        elAnswer.disabled = true;
+
+        setTimeout(() => fadeToNext(), 520);
+      } else {
+        setFeedback("bad", "Niet juist. Probeer opnieuw.");
+        elAnswer.select();
+      }
+    }
+
+    elAnswer.addEventListener("keydown", (e) => {
+      if(e.key === "Enter") tryCheck();
+    });
+    elCheck.addEventListener("click", tryCheck);
+
+    // initial
+    renderSlots();
+    loadChallenge(0);
+
+
+
+// ===== Shuffle the WHOLE word every second (no fade) =====
+let _shuffleTimer = null;
+function startWordShuffle(){
+  const el = document.getElementById("wordOut");
+  if(!el) return;
+
+  const letters = ["F","U","E","G","O"];
+
+  function shuffle(arr){
+    for (let i = arr.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function step(){
+    el.textContent = shuffle(letters.slice()).join("");
+  }
+
+  step();
+  if (_shuffleTimer) clearInterval(_shuffleTimer);
+  _shuffleTimer = setInterval(step, 1000); // every second
+}
+
+</script>
+</body>
+</html>
